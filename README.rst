@@ -51,3 +51,12 @@ The script activate.sh prints the IP adress docker-machine is listening on. Use 
 
 Direct access to Plone instance: http://192.168.99.100:8080
 Access to BCCVL site: https://192.168.99.100
+
+Install common test datasets
+============================
+
+.. code-block:; Shell
+
+    ./scripts/testsetup.sh --dev
+    ./scripts/testsetup.sh --test
+
