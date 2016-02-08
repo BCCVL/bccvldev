@@ -1,0 +1,133 @@
+rabbitmq:
+  container_name: rabbitmq
+  image: hub.bccvl.org.au/rabbitmq/rabbitmq:3.6.0
+  hostname: rabbitmq  # needed to access same config everytime
+  environment:
+    RABBITMQ_DEFAULT_USER: admin
+    RABBITMQ_DEFAULT_PASS: admin
+    RABBITMQ_DEFAULT_VHOST: /
+  ports:
+    - "5671:5671"
+    - "5672:5672"
+    - "15671:15671"
+    - "15672:15672"
+  volumes:
+    - /var/lib/rabbitmq
+
+
+zeoserver:
+  container_name: zeoserver
+  image: hub.bccvl.org.au/zope/zeoserver:4.1.0
+  ports:
+    - "8100:8100"
+    - "8101:8101"
+  volumes:
+    - /var/opt/zeoserver
+
+
+# postgis:
+#   container_name: postgis
+#   image: hub.bccvl.org.au/postgres/postgis:9.5.0
+#   ports:
+#     - "5432:5432"
+#   volumes:
+#     - /var/lib/pgsql/9.5/data
+
+
+bccvl:
+  container_name: bccvl
+  build: bccvl
+  environment:
+    ZEOSERVER: zeoserver:8100
+  ports:
+    - "8080:8080"
+  volumes_from:
+    - zeoserver
+    - bccvlsshd
+  volumes:
+    - ./src:/opt/zope/src
+  links:
+    - zeoserver
+#     - postgis
+    - rabbitmq
+
+
+bccvl_worker:
+  container_name: bccvl_worker
+  build: bccvl
+  environment:
+    ZEOSERVER: zeoserver:8100
+  volumes_from:
+    - zeoserver
+    - bccvlsshd
+  volumes:
+    - ./src:/opt/zope/src
+  links:
+    - zeoserver
+#     - postgis
+    - rabbitmq
+  command: ./bin/celery worker --app=org.bccvl.tasks --queues=plone --hostname=plone@bccvl -I org.bccvl.tasks.plone
+
+
+# TODO: needs work... change folders to /opt layout
+visualiser:
+  container_name: visualiser
+  image: hub.bccvl.org.au/bccvl/visualiser:develop-latest
+  environment:
+    NWORKERS: 2
+    NTHREADS: 2
+  ports:
+    - "10600:10600"
+  volumes:
+    - ./BCCVL_Visualiser/BCCVL_Visualiser:/opt/visualiser
+  command: /cmd.sh
+
+
+datamover_worker:
+  container_name: datamover_worker
+  build: worker
+  volumes:
+    - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
+    - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
+  links:
+    - rabbitmq
+  command: celery worker --app=org.bccvl.tasks --queues=datamover --hostname=datamover@bccvl -I org.bccvl.tasks.export_services,org.bccvl.tasks.datamover
+
+
+# TODO: requires ssh keys setup
+#       requires source cloned into src
+worker:
+  container_name: worker
+  build: worker
+  volumes:
+    - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
+    - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
+    - ./zope.id_rsa:/opt/worker/.ssh/id_rsa
+    - ./zope.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
+    - ./zope.id_rsa:/root/.ssh/id_rsa
+    - ./zope.id_rsa.pub:/root/.ssh/id_rsa.pub
+  links:
+    - rabbitmq
+  command: celery worker --app=org.bccvl.tasks --queues=worker --hostname=worker@bccvl -I org.bccvl.tasks.compute
+
+
+bccvlsshd:
+  container_name: bccvlsshd
+  build: bccvlsshd
+  ports:
+    - "23:22"
+  volumes:
+    - ./zope.id_rsa.pub:/opt/zope/.ssh/authorized_keys
+    - /tmp
+
+
+nginx:
+  container_name: nginx
+  image: nginx:1.9
+  volumes:
+    - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    - ./nginx.key:/etc/ssl/private/self.key:ro
+    - ./nginx.crt:/etc/ssl/certs/self.crt:ro
+  ports:
+    - "80:80"
+    - "443:443"
