@@ -76,6 +76,7 @@ visualiser:
   environment:
     NWORKERS: 2
     NTHREADS: 2
+    CONFIG: docker_development.ini
   ports:
     - "10600:10600"
   volumes:
