@@ -84,6 +84,13 @@ Install common test datasets
     ./scripts/testsetup.sh --dev
     ./scripts/testsetup.sh --test
 
+Run tests
+=========
+
+.. code-block:: Shell
+
+    docker-compose run --rm bccvl -u zope ./bin/test
+
 Run Site upgrades
 =================
 
