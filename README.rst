@@ -22,9 +22,9 @@ Getting Started
 
 .. code-block:: Shell
 
-    git clone git@github.com/BCCVL/bccvldev
+    git clone git@github.com:BCCVL/bccvldev
     cd bccvldev
-    git clone git@github.com/BCCVL/BCCVL_Visualiser
+    git clone git@github.com:BCCVL/BCCVL_Visualiser
 
 
 3. Bring up env
@@ -36,12 +36,36 @@ Getting Started
     docker-compose up
 
 
-4. Run initial configuration
+4. Run compose build
+--------------------
+
+.. code-block:: Shell
+
+    docker-compose build
+
+
+5. Init BCCVL source code
+-------------------------
+
+.. code-block:: Shell
+
+    docker-compose run --rm bccvl ./bin/buildout
+
+
+6. Run initial configuration
 ----------------------------
 
 .. code-block:: Shell
 
     ./scripts/init.sh
+
+
+7. Create initial site
+----------------------
+
+.. code-block:: Shell
+
+   docker-compose run --rm bccvl ./bin/instance manage
 
 
 Access Site
@@ -55,8 +79,18 @@ Access to BCCVL site: https://192.168.99.100
 Install common test datasets
 ============================
 
-.. code-block:; Shell
+.. code-block:: Shell
 
     ./scripts/testsetup.sh --dev
     ./scripts/testsetup.sh --test
 
+Run Site upgrades
+=================
+
+.. code-bolck:: Shell
+
+    # run all available upgrade steps
+    docker-compose run --rm bccvl ./bin/instance manage --upgrade
+
+    # re-run latest upgrade step
+    docker-compose run --rm bccvl ./bin/instance manage --lastupgrade
