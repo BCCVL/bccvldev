@@ -87,7 +87,7 @@ Install common test datasets
 Run Site upgrades
 =================
 
-.. code-bolck:: Shell
+.. code-block:: Shell
 
     # run all available upgrade steps
     docker-compose run --rm bccvl ./bin/instance manage --upgrade
