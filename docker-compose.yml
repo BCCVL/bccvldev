@@ -39,6 +39,8 @@ bccvl:
   build: bccvl
   environment:
     ZEOSERVER: zeoserver:8100
+    # this port must match the exposed port in bccvlsshd
+    SSH_PORT: 23
   ports:
     - "8080:8080"
   volumes_from:
@@ -57,6 +59,8 @@ bccvl_worker:
   build: bccvl
   environment:
     ZEOSERVER: zeoserver:8100
+    # this port must match the exposed port in bccvlsshd
+    SSH_PORT: 23
   volumes_from:
     - zeoserver
     - bccvlsshd
