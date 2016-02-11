@@ -23,6 +23,12 @@ zeoserver:
     - "8101:8101"
   volumes:
     - /var/opt/zeoserver
+    - ./volumes/zeoserver/backups:/var/opt/zeoserver/backups
+    - ./volumes/zeoserver/blobstroagebackups:/var/opt/zeoserver/blobstoragebackups
+    - ./volumes/zeoserver/blobstoragesnapshots:/var/opt/zeoserver/blobstoragesnapshots
+    - ./volumes/zeoserver/blobstoragezips:/var/opt/zeoserver/blobstoragezips
+    - ./volumes/zeoserver/snapshotbackups:/var/opt/zeoserver/snapshotbackups
+    - ./volumes/zeoserver/zipbackups:/var/opt/zeoserver/zipbackups
 
 
 # postgis:
@@ -94,6 +100,10 @@ datamover_worker:
   volumes:
     - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
     - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
+    - ./zope.id_rsa:/opt/worker/.ssh/id_rsa
+    - ./zope.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
+    - ./zope.id_rsa:/root/.ssh/id_rsa
+    - ./zope.id_rsa.pub:/root/.ssh/id_rsa.pub
   links:
     - rabbitmq
   command: celery worker --app=org.bccvl.tasks --queues=datamover --hostname=datamover@bccvl -I org.bccvl.tasks.export_services,org.bccvl.tasks.datamover
@@ -114,6 +124,8 @@ worker:
   links:
     - rabbitmq
   command: celery worker --app=org.bccvl.tasks --queues=worker --hostname=worker@bccvl -I org.bccvl.tasks.compute
+  # need to sot $HOME to run as user and make sure file permissions are correct
+  #command: celery worker --app=org.bccvl.tasks --queues=worker --uid=worker --gid=worker --hostname=worker@bccvl -I org.bccvl.tasks.compute
 
 
 bccvlsshd:
@@ -122,7 +134,7 @@ bccvlsshd:
   ports:
     - "23:22"
   volumes:
-    - ./zope.id_rsa.pub:/opt/zope/.ssh/authorized_keys
+    - ./zope.id_rsa.pub:/etc/opt/zope/zope.id_rsa.pub
     - /tmp
 
 
