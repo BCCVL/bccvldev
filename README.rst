@@ -35,7 +35,7 @@ Getting Started
     . /scripts/activate.sh
     docker-compose build
     # init bccvl dev env ; necessary to setup git clones in host src folder
-    docker-compose run --rm --no-deps bccvl ./bin/buildout
+    docker-compose run --rm --no-deps bccvl ./build.sh
 
 
 4. Run initial configuration
