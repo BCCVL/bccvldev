@@ -47,12 +47,21 @@ bccvl:
     ZEOSERVER: zeoserver:8100
     # this port must match the exposed port in bccvlsshd
     SSH_PORT: 23
+    PTS_LANGUAGES: en de
+    zope_i18n_allowed_languages: en de
+    #zope_i18n_compile_mo_files: true
+    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
+    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
+    ADMINS: g.weis@griffith.edu.au
+    CELERY_TIMEZONE: Australia/Brisbane
+    TZ: Australia/Brisbane
   ports:
     - "8080:8080"
   volumes_from:
     - zeoserver
     - bccvlsshd
   volumes:
+    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
     - ./src:/opt/zope/src
   links:
     - zeoserver
@@ -67,10 +76,19 @@ bccvl_worker:
     ZEOSERVER: zeoserver:8100
     # this port must match the exposed port in bccvlsshd
     SSH_PORT: 23
+    # BCCVL specific
+    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
+    # CELERY CONFIG
+    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
+    ADMINS: g.weis@griffith.edu.au
+    CELERY_TIMEZONE: Australia/Brisbane
+    CELERYD_CONCURRENCY: 1
+    TZ: Australia/Brisbane
   volumes_from:
     - zeoserver
     - bccvlsshd
   volumes:
+    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
     - ./src:/opt/zope/src
   links:
     - zeoserver
@@ -97,9 +115,25 @@ visualiser:
 datamover_worker:
   container_name: datamover_worker
   build: worker
+  environment:
+    ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
+    ST_USER: test:tester
+    ST_KEY: testing
+    # OS_AUTH_URL: http://192.168.99.100:5050/auth/v1/
+    # OS_USERNAME: test:tester
+    # OS_PASSWORD: testing
+    # BCCVL specific
+    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
+    # CELERY CONFIG
+    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
+    ADMINS: g.weis@griffith.edu.au
+    CELERY_TIMEZONE: Australia/Brisbane
+    CELERYD_CONCURRENCY: 2
+    TZ: Australia/Brisbane
   volumes:
     - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
     - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
+    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
     - ./zope.id_rsa:/opt/worker/.ssh/id_rsa
     - ./zope.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
     - ./zope.id_rsa:/root/.ssh/id_rsa
@@ -114,9 +148,25 @@ datamover_worker:
 worker:
   container_name: worker
   build: worker
+  environment:
+    ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
+    ST_USER: test:tester
+    ST_KEY: testing
+    # OS_AUTH_URL: http://192.168.99.100:5050/auth/v1/
+    # OS_USERNAME: test:tester
+    # OS_PASSWORD: testing
+    # BCCVL specific
+    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
+    # CELERY CONFIG
+    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
+    ADMINS: g.weis@griffith.edu.au
+    CELERY_TIMEZONE: Australia/Brisbane
+    CELERYD_CONCURRENCY: 2
+    TZ: Australia/Brisbane
   volumes:
     - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
     - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
+    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
     - ./zope.id_rsa:/opt/worker/.ssh/id_rsa
     - ./zope.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
     - ./zope.id_rsa:/root/.ssh/id_rsa
