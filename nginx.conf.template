@@ -17,6 +17,10 @@ upstream visualiser {
     server DOCKER_MACHINE_IP:10600;
 }
 
+upstream swiftbrowser {
+    server DOCKER_MACHINE_IP:8000;
+}
+
 
 # Redirect all www-less traffic to the www.site.com domain
 # (you could also do the opposite www -> non-www domain)
@@ -52,9 +56,36 @@ server {
         proxy_pass http://visualiser/;
     }
 
-    # Note that domain name spelling in VirtualHostBase URL matters
-    # -> this is what Plone sees as the "real" HTTP request URL.
-    # "Plone" in the URL is your site id (case sensitive)
+    location /_swift/ {
+        proxy_set_header Host            $host;
+        proxy_set_header X-Real-IP       $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        #proxy_set_header SCRIPT_NAME /myapp;
+
+        proxy_pass http://swiftbrowser/;
+        proxy_redirect off;
+    }
+
+    location /_debug/ {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://plone/VirtualHostBase/https/DOCKER_MACHINE_IP:443/VirtualHostRoot/;
+    }
+
+    location /_edit/ {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X_THEME_DISABLED 1;
+
+        proxy_pass http://plone/VirtualHostBase/https/DOCKER_MACHINE_IP:443/bccvl/VirtualHostRoot/;
+    }
+
     location / {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -64,6 +95,3 @@ server {
         proxy_pass http://plone/VirtualHostBase/https/DOCKER_MACHINE_IP:443/bccvl/VirtualHostRoot/;
     }
 }
-
-
-
