@@ -27,45 +27,39 @@ Getting Started
     git clone git@github.com:BCCVL/BCCVL_Visualiser
 
 
-3. Bring up env
----------------
+3. Build dev env
+----------------
 
 .. code-block:: Shell
 
     . /scripts/activate.sh
-    docker-compose up
-
-
-4. Run compose build
---------------------
-
-.. code-block:: Shell
-
     docker-compose build
+    # init bccvl dev env ; necessary to setup git clones in host src folder
+    docker-compose run --rm --no-deps bccvl ./bin/buildout
 
 
-5. Init BCCVL source code
--------------------------
-
-.. code-block:: Shell
-
-    docker-compose run --rm bccvl ./bin/buildout
-
-
-6. Run initial configuration
+4. Run initial configuration
 ----------------------------
 
 .. code-block:: Shell
 
+    docker-compose up -d rabbitmq
     ./scripts/init.sh
 
 
-7. Create initial site
+5. Create initial site
 ----------------------
 
 .. code-block:: Shell
 
-   docker-compose run --rm bccvl ./bin/instance manage
+    docker-compose run --rm bccvl ./bin/instance manage
+
+6. Start everything else
+------------------------
+
+.. code-block::Shell
+
+    docker-compose up
 
 
 Access Site
