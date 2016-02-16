@@ -137,6 +137,25 @@ bccvlsshd:
     - ./zope.id_rsa.pub:/etc/opt/zope/zope.id_rsa.pub
     - /tmp
 
+swift:
+  container_name: swift
+  image: hub.bccvl.org.au/openstack/swiftaio:2.5.0
+  environment:
+    SWIFT_SWAUTH_CLUSTER: local#http://192.168.99.100:5050/v1#http://127.0.0.1:8080/v1
+  ports:
+    - "5050:8080"
+  volumes:
+    - /srv
+
+swiftbrowser:
+  container_name: swiftbrowser
+  image: hub.bccvl.org.au/openstack/django-swiftbrowser:0.22
+  environment:
+    SWIFT_URL: http://192.168.99.100:5050
+    ALLOWED_HOSTS: 192.168.99.100
+    FORCE_SCRIPT_NAME: /_swift/
+  ports:
+    - "8000:8000"
 
 nginx:
   container_name: nginx
