@@ -33,6 +33,8 @@ Getting Started
 .. code-block:: Shell
 
     . /scripts/activate.sh
+    # don't forget to log in to our registry
+    docker login hub.bccvl.org.au
     docker-compose build
     # init bccvl dev env ; necessary to setup git clones in host src folder
     docker-compose run --rm --no-deps bccvl ./build.sh
