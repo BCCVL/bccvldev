@@ -1,4 +1,4 @@
-FROM hub.bccvl.org.au/bccvl/bccvl:1.10.1
+FROM hub.bccvl.org.au/bccvl/bccvl:1.11.0.dev
 
 COPY buildout.cfg $Z_HOME/
 
