@@ -32,7 +32,7 @@ Getting Started
 
 .. code-block:: Shell
 
-    . /scripts/activate.sh
+    source scripts/activate.sh
     # don't forget to log in to our registry
     docker login hub.bccvl.org.au
     docker-compose build
