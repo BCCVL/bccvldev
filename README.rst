@@ -59,7 +59,7 @@ Getting Started
 6. Start everything else
 ------------------------
 
-.. code-block::Shell
+.. code-block:: Shell
 
     docker-compose up
 
