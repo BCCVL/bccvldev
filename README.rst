@@ -104,6 +104,8 @@ Run Site upgrades
 Run BCCVL instance in development mode
 ======================================
 
+.. code-block:: Shell
+
     # stop bccvl container in case it is running
     docker-compose stop bccvl
 
