@@ -1,219 +1,241 @@
-rabbitmq:
-  container_name: rabbitmq
-  image: hub.bccvl.org.au/rabbitmq/rabbitmq:3.6.0
-  hostname: rabbitmq  # needed to access same config everytime
-  environment:
-    RABBITMQ_DEFAULT_USER: admin
-    RABBITMQ_DEFAULT_PASS: admin
-    RABBITMQ_DEFAULT_VHOST: /
-  ports:
-    - "5671:5671"
-    - "5672:5672"
-    - "15671:15671"
-    - "15672:15672"
-  volumes:
-    - /var/lib/rabbitmq
+# TODO: ... layer compose files with extend....
+#           base layer for integration testing
+#           layer on top for development
+#
+# TODO: ... don't use port ranges for celery debugging
+#           let celery debugger listen on 0.0.0.0, don't expose port to host,
+#           but rather run a custom telnet container on same network as container for debugging (with interactive terminal via docker or docker-compose)
+
+# init:
+#
+#   create db user and db itself
+#
+#   $ docker-compose up postgis
+#   $ docker-compose exec --user postgres postgis createuser plone
+#   $ docker-compose exec --user postgres postgis createdb -O plone plone
+#   $ docker-compose exec --user postgres postgis psql -c "alter user plone with password 'plone';"
+#
+# Build and setup BCCVL
+#
+#  TODO: create manager user on command linee?
+#
+#    $ docker-compose build bccvl
+#    $ docker-compose run --rm bccvl ./bin/buildout -N -c development.cfg
+#    $ docker-compose run --rm bccvl ./bin/instance manage
+#
+# Start Rabbitmq and BCCVL Worker (web worker)
+#
+#    $ docker-compose up -d rabbitmq
+#    $ docker-compose up -d bccvl_worker
+#
+# ingest some test/dev data
+#
+#    $ docker-compose run --rm bccvl ./bin/instance testsetup --siteurl http://192.168.99.100:8080/bccvl/ --dev
+#
+#
+# visualiser db:
+#
+#   Alternative to create exteniosn would be to create a template database with postgis extensions and create new db's from this template
+#
+#   $ docker-compose exec --user postgres postgis createuser visualiser
+#   $ docker-compose exec --user postgres postgis createdb -O visualiser visualiser
+#   $ docker-compose exec --user postgres postgis psql -c "alter user visualiser with password 'visualiser';"
+#   $ docker-compose exec --user postgres postgis psql -d visualiser -c "CREATE EXTENSION postgis;"
+#   $ docker-compose exec --user postgres postgis psql -d visualiser -c "CREATE EXTENSION postgis_topology;"
+#
+#
 
 
-zeoserver:
-  container_name: zeoserver
-  image: hub.bccvl.org.au/zope/zeoserver:4.1.0
-  ports:
-    - "8100:8100"
-    - "8101:8101"
-  volumes:
-    - /var/opt/zeoserver
-    - ./volumes/zeoserver/backups:/var/opt/zeoserver/backups
-    - ./volumes/zeoserver/blobstroagebackups:/var/opt/zeoserver/blobstoragebackups
-    - ./volumes/zeoserver/blobstoragesnapshots:/var/opt/zeoserver/blobstoragesnapshots
-    - ./volumes/zeoserver/blobstoragezips:/var/opt/zeoserver/blobstoragezips
-    - ./volumes/zeoserver/snapshotbackups:/var/opt/zeoserver/snapshotbackups
-    - ./volumes/zeoserver/zipbackups:/var/opt/zeoserver/zipbackups
+version: '2'
+
+services:
+
+  # use as storage
+  postgis:
+    container_name: postgis
+    image: hub.bccvl.org.au/postgres/postgis:9.5.0
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/pgsql/9.5/data
+
+  # bccvl web app
+  bccvl:
+    container_name: bccvl
+    build: bccvl
+    # set image name so that the same image can be used for other services
+    image: bccvl
+    environment:
+      # this port must match the exposed port in bccvlsshd
+      SSH_PORT: 23
+      PTS_LANGUAGES: en de
+      zope_i18n_allowed_languages: en de
+      #zope_i18n_compile_mo_files: true
+      BROKER_URL: amqp://admin:admin@rabbitmq/
+      ADMINS: admin@dev.bccvl.org.au
+      CELERY_TIMEZONE: Australia/Brisbane
+      TZ: Australia/Brisbane
+    ports:
+      - "8080:8080"
+    volumes:
+      - sharedtmp:/tmp
+      - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini
+      - ./src:/opt/bccvl/src
+    command: ./bin/instance fg
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: hub.bccvl.org.au/rabbitmq/rabbitmq:3.6.0
+    hostname: rabbitmq  # needed to access same config everytime
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
+      - "15672:15672"
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+
+  # web worker ... for backend tasks running inside plone context
+  bccvl_worker:
+    container_name: bccvl_worker
+    build: bccvl
+    # set image name so that the same image can be used for other services
+    image: bccvl
+    environment:
+      # this port must match the exposed port in bccvlsshd
+      SSH_PORT: 23
+      PTS_LANGUAGES: en de
+      zope_i18n_allowed_languages: en de
+      #zope_i18n_compile_mo_files: true
+      BROKER_URL: amqp://admin:admin@rabbitmq/
+      ADMINS: admin@dev.bccvl.org.au
+      CELERYD_CONCURRENCY: 1
+      CELERY_TIMEZONE: Australia/Brisbane
+      CELERY_RDB_HOST: 0.0.0.0
+      TZ: Australia/Brisbane
+    volumes:
+      - sharedtmp:/tmp
+      - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini
+      - ./src:/opt/bccvl/src
+    command: ./bin/celery worker --app=org.bccvl.tasks --queues=plone --hostname=plone@bccvl -I org.bccvl.tasks.plone
+
+  # datamover worker ... backend process
+  datamover_worker:
+    container_name: datamover_worker
+    build: bccvl
+    # set image name so that the same image can be used for other services
+    image: bccvl
+    environment:
+      ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
+      ST_USER: test:tester
+      ST_KEY: testing
+      # OS_AUTH_URL: http://192.168.99.100:5050/auth/v1/
+      # OS_USERNAME: test:tester
+      # OS_PASSWORD: testing
+      # this port must match the exposed port in bccvlsshd
+      SSH_PORT: 23
+      PTS_LANGUAGES: en de
+      zope_i18n_allowed_languages: en de
+      #zope_i18n_compile_mo_files: true
+      BROKER_URL: amqp://admin:admin@rabbitmq/
+      ADMINS: admin@dev.bccvl.org.au
+      CELERYD_CONCURRENCY: 2
+      CELERY_TIMEZONE: Australia/Brisbane
+      CELERY_RDB_HOST: 0.0.0.0
+      TZ: Australia/Brisbane
+    volumes:
+      - ./src:/opt/bccvl/src
+      - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
+      - ./bccvl.id_rsa:/opt/bccvl/.ssh/id_rsa
+      - ./bccvl.id_rsa.pub:/opt/bccvl/.ssh/id_rsa.pub
+      - ./bccvl.id_rsa:/root/.ssh/id_rsa
+      - ./bccvl.id_rsa.pub:/root/.ssh/id_rsa.pub
+    command: ./bin/celery worker --app=org.bccvl.tasks --queues=datamover --hostname=datamover@bccvl -I org.bccvl.tasks.export_services,org.bccvl.tasks.datamover
+
+  nginx:
+    container_name: nginx
+    image: nginx:1.10.1
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.key:/etc/ssl/private/self.key:ro
+      - ./nginx.crt:/etc/ssl/certs/self.crt:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+  # container used to exchange data via ssh
+  bccvlsshd:
+    container_name: bccvlsshd
+    build: bccvlsshd
+    image: bccvlsshd
+    ports:
+      - "23:22"
+    volumes:
+      - ./bccvl.id_rsa.pub:/etc/opt/bccvl/ssh/bccvl.id_rsa.pub
+      - sharedtmp:/tmp
+
+  # TODO: needs work... change folders to /opt layout
+  #       use uwsgi? (gunicorn has a habit of timing out for long requests)
+  visualiser:
+    container_name: visualiser
+    image: visualiser
+    environment:
+      NWORKERS: 2
+      NTHREADS: 2
+      CONFIG: docker_development.ini
+    ports:
+      - "10600:10600"
+    volumes:
+      - ./BCCVL_Visualiser/BCCVL_Visualiser:/opt/visualiser
+    command: /cmd.sh
+
+  worker:
+    container_name: worker
+    build: worker
+    image: worker
+    environment:
+      ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
+      ST_USER: test:tester
+      ST_KEY: testing
+      # OS_AUTH_URL: http://192.168.99.100:5050/auth/v1/
+      # OS_USERNAME: test:tester
+      # OS_PASSWORD: testing
+      # BCCVL specific
+      BCCVL_CONFIG: /etc/opt/worker/bccvl.ini
+      # CELERY CONFIG
+      BROKER_URL: amqp://admin:admin@rabbitmq/
+      ADMINS: g.weis@griffith.edu.au
+      CELERY_TIMEZONE: Australia/Brisbane
+      CELERYD_CONCURRENCY: 2
+      TZ: Australia/Brisbane
+      CELERY_RDB_HOST: 0.0.0.0
+      WORKDIR: /var/opt/worker/workdir
+    volumes:
+      - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
+      - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
+      - ./src/org.bccvl.compute:/opt/worker/org.bccvl.compute
+      - ./bccvl/files/bccvl.ini:/etc/opt/worker/bccvl.ini
+      - ./bccvl.id_rsa:/opt/worker/.ssh/id_rsa
+      - ./bccvl/.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
+      - ./bccvl.id_rsa:/root/.ssh/id_rsa
+      - ./bccvl.id_rsa.pub:/root/.ssh/id_rsa.pub
+      - sharedtmp:/var/opt/worker
+    ports:
+      - "6900-6020:6900:6020"
+    command: celery worker --app=org.bccvl.tasks --loglevel=INFO --queues=worker --hostname=worker@bccvl -I org.bccvl.tasks.compute
 
 
-# postgis:
-#   container_name: postgis
-#   image: hub.bccvl.org.au/postgres/postgis:9.5.0
-#   ports:
-#     - "5432:5432"
-#   volumes:
-#     - /var/lib/pgsql/9.5/data
-
-
-bccvl:
-  container_name: bccvl
-  build: bccvl
-  environment:
-    ZEOSERVER: zeoserver:8100
-    # this port must match the exposed port in bccvlsshd
-    SSH_PORT: 23
-    PTS_LANGUAGES: en de
-    zope_i18n_allowed_languages: en de
-    #zope_i18n_compile_mo_files: true
-    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
-    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
-    ADMINS: g.weis@griffith.edu.au
-    CELERY_TIMEZONE: Australia/Brisbane
-    TZ: Australia/Brisbane
-  ports:
-    - "8080:8080"
-  volumes_from:
-    - zeoserver
-    - bccvlsshd
-  volumes:
-    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
-    - ./src:/opt/zope/src
-  links:
-    - zeoserver
-#     - postgis
-    - rabbitmq
-
-
-bccvl_worker:
-  container_name: bccvl_worker
-  build: bccvl
-  environment:
-    ZEOSERVER: zeoserver:8100
-    # this port must match the exposed port in bccvlsshd
-    SSH_PORT: 23
-    # BCCVL specific
-    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
-    # CELERY CONFIG
-    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
-    ADMINS: g.weis@griffith.edu.au
-    CELERY_TIMEZONE: Australia/Brisbane
-    CELERYD_CONCURRENCY: 1
-    TZ: Australia/Brisbane
-  volumes_from:
-    - zeoserver
-    - bccvlsshd
-  volumes:
-    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
-    - ./src:/opt/zope/src
-  links:
-    - zeoserver
-#     - postgis
-    - rabbitmq
-  command: ./bin/celery worker --app=org.bccvl.tasks --queues=plone --hostname=plone@bccvl -I org.bccvl.tasks.plone
-
-
-# TODO: needs work... change folders to /opt layout
-visualiser:
-  container_name: visualiser
-  image: hub.bccvl.org.au/bccvl/visualiser:develop-latest
-  environment:
-    NWORKERS: 2
-    NTHREADS: 2
-    CONFIG: docker_development.ini
-  ports:
-    - "10600:10600"
-  volumes:
-    - ./BCCVL_Visualiser/BCCVL_Visualiser:/opt/visualiser
-  command: /cmd.sh
-
-
-datamover_worker:
-  container_name: datamover_worker
-  build: worker
-  environment:
-    ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
-    ST_USER: test:tester
-    ST_KEY: testing
-    # OS_AUTH_URL: http://192.168.99.100:5050/auth/v1/
-    # OS_USERNAME: test:tester
-    # OS_PASSWORD: testing
-    # BCCVL specific
-    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
-    # CELERY CONFIG
-    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
-    ADMINS: g.weis@griffith.edu.au
-    CELERY_TIMEZONE: Australia/Brisbane
-    CELERYD_CONCURRENCY: 2
-    TZ: Australia/Brisbane
-  volumes:
-    - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
-    - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
-    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
-    - ./zope.id_rsa:/opt/worker/.ssh/id_rsa
-    - ./zope.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
-    - ./zope.id_rsa:/root/.ssh/id_rsa
-    - ./zope.id_rsa.pub:/root/.ssh/id_rsa.pub
-  links:
-    - rabbitmq
-  command: celery worker --app=org.bccvl.tasks --queues=datamover --hostname=datamover@bccvl -I org.bccvl.tasks.export_services,org.bccvl.tasks.datamover
-
-
-# TODO: requires ssh keys setup
-#       requires source cloned into src
-worker:
-  container_name: worker
-  build: worker
-  environment:
-    ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
-    ST_USER: test:tester
-    ST_KEY: testing
-    # OS_AUTH_URL: http://192.168.99.100:5050/auth/v1/
-    # OS_USERNAME: test:tester
-    # OS_PASSWORD: testing
-    # BCCVL specific
-    BCCVL_CONFIG: /etc/opt/zope/bccvl.ini
-    # CELERY CONFIG
-    BROKER_URL: amqp://bccvl:bccvl@rabbitmq/bccvl
-    ADMINS: g.weis@griffith.edu.au
-    CELERY_TIMEZONE: Australia/Brisbane
-    CELERYD_CONCURRENCY: 2
-    TZ: Australia/Brisbane
-  volumes:
-    - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
-    - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
-    - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
-    - ./zope.id_rsa:/opt/worker/.ssh/id_rsa
-    - ./zope.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
-    - ./zope.id_rsa:/root/.ssh/id_rsa
-    - ./zope.id_rsa.pub:/root/.ssh/id_rsa.pub
-  links:
-    - rabbitmq
-  command: celery worker --app=org.bccvl.tasks --queues=worker --hostname=worker@bccvl -I org.bccvl.tasks.compute
-  # need to sot $HOME to run as user and make sure file permissions are correct
-  #command: celery worker --app=org.bccvl.tasks --queues=worker --uid=worker --gid=worker --hostname=worker@bccvl -I org.bccvl.tasks.compute
-
-
-bccvlsshd:
-  container_name: bccvlsshd
-  build: bccvlsshd
-  ports:
-    - "23:22"
-  volumes:
-    - ./zope.id_rsa.pub:/etc/opt/zope/zope.id_rsa.pub
-    - /tmp
-
-swift:
-  container_name: swift
-  image: hub.bccvl.org.au/openstack/swiftaio:2.5.0
-  environment:
-    SWIFT_SWAUTH_CLUSTER: local#http://192.168.99.100:5050/v1#http://127.0.0.1:8080/v1
-  ports:
-    - "5050:8080"
-  volumes:
-    - /srv
-
-swiftbrowser:
-  container_name: swiftbrowser
-  image: hub.bccvl.org.au/openstack/django-swiftbrowser:0.22
-  environment:
-    SWIFT_URL: http://192.168.99.100:5050
-    ALLOWED_HOSTS: 192.168.99.100
-    FORCE_SCRIPT_NAME: /_swift/
-  ports:
-    - "8000:8000"
-
-nginx:
-  container_name: nginx
-  image: nginx:1.9
-  volumes:
-    - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    - ./nginx.key:/etc/ssl/private/self.key:ro
-    - ./nginx.crt:/etc/ssl/certs/self.crt:ro
-  ports:
-    - "80:80"
-    - "443:443"
+volumes:
+  # used to store data for postgress
+  dbdata:
+    driver: local
+  # used as shared storage ... needed for ssh transfer between containers
+  sharedtmp:
+    driver: local
+  # rabbitmq storage
+  rabbitdata:
+    driver: local
