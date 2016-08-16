@@ -100,3 +100,12 @@ Run Site upgrades
 
     # re-run latest upgrade step
     docker-compose run --rm bccvl ./bin/instance manage --lastupgrade
+
+Run BCCVL instance in development mode
+======================================
+
+    # stop bccvl container in case it is running
+    docker-compose stop bccvl
+
+    # start zope instance in foreground mode
+    docker-compose run --rm --service-ports bccvl ./bin/instance fg
