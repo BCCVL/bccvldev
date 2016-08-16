@@ -26,3 +26,6 @@ fi
 
 echo "Machine IP: ${DOCKER_MACHINE_IP}"
 
+# setup swift environment variables
+export SW_AUTH_URL=http://${DOCKER_MACHINE_IP}:5050/auth/
+export AUTH_URL=${SW_AUTH_URL}v1.0/

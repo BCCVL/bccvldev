@@ -1,9 +1,8 @@
-FROM hub.bccvl.org.au/bccvl/bccvl:1.11.0.dev
+FROM hub.bccvl.org.au/bccvl/bccvl
 
-COPY buildout.cfg $Z_HOME/
+RUN yum install -y git \
+    && yum clean all
 
-ENV CONFIG buildout.cfg
+COPY files/development.cfg $BCCVL_HOME/
 
-RUN $Z_HOME/build.sh
-
-RUN chmod -R o+r eggs/
+RUN ./bin/buildout -N -c development.cfg
