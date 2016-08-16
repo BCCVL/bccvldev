@@ -24,7 +24,7 @@ Getting Started
 
     git clone git@github.com:BCCVL/bccvldev
     cd bccvldev
-    git clone git@github.com:BCCVL/BCCVL_Visualiser
+    git clone -b docker git@github.com:BCCVL/BCCVL_Visualiser
 
 
 3. Build dev env
@@ -36,32 +36,34 @@ Getting Started
     # don't forget to log in to our registry
     docker login hub.bccvl.org.au
     docker-compose build
-    # init bccvl dev env ; necessary to setup git clones in host src folder
-    docker-compose run --rm --no-deps bccvl ./build.sh
+    # start and init storage container
+    docker-compose up -d postgis
+    docker-compose exec --user postgres postgis createuser plone
+    docker-compose exec --user postgres postgis createdb -O plone plone
+    docker-compose exec --user postgres postgis psql -c "alter user plone with password 'plone';"
+    # init visualiser db
+    docker-compose exec --user postgres postgis createuser visualiser
+    docker-compose exec --user postgres postgis createdb -O visualiser visualiser
+    docker-compose exec --user postgres postgis psql -c "alter user visualiser with password 'visualiser';"
+    docker-compose exec --user postgres postgis psql -d visualiser -c "CREATE EXTENSION postgis;"
+    # build bccvl dev container
+    docker-compose run --rm bccvl ./bin/buildout -N -c development.cfg
 
 
-4. Run initial configuration
-----------------------------
+4. Start all services
+---------------------
 
 .. code-block:: Shell
 
-    docker-compose up -d rabbitmq
-    ./scripts/init.sh
-
+    docker-compose up -d
 
 5. Create initial site
 ----------------------
 
 .. code-block:: Shell
 
+    # init bccvl site
     docker-compose run --rm bccvl ./bin/instance manage
-
-6. Start everything else
-------------------------
-
-.. code-block:: Shell
-
-    docker-compose up
 
 
 Access Site
@@ -77,8 +79,9 @@ Install common test datasets
 
 .. code-block:: Shell
 
-    ./scripts/testsetup.sh --dev
-    ./scripts/testsetup.sh --test
+    # install test/dev datasets
+    docker-compose run --rm bccvl ./bin/instance testsetup --siteurl http://192.168.99.100:8080/bccvl/ --dev
+    docker-compose run --rm bccvl ./bin/instance testsetup --siteurl http://192.168.99.100:8080/bccvl/ --test
 
 Run tests
 =========
