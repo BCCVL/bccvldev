@@ -187,11 +187,12 @@ services:
     environment:
       NWORKERS: 2
       NTHREADS: 2
-      CONFIG: docker_development.ini
+      CONFIG: /opt/visualiser/docker_development.ini
     ports:
       - "10600:10600"
     volumes:
-      - ./BCCVL_Visualiser/BCCVL_Visualiser:/opt/visualiser
+      - sharedtmp:/var/opt/visualiser
+    #  - ./BCCVL_Visualiser/BCCVL_Visualiser:/opt/visualiser
     command: /cmd.sh
 
   worker:
