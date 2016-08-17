@@ -182,6 +182,7 @@ services:
   #       use uwsgi? (gunicorn has a habit of timing out for long requests)
   visualiser:
     container_name: visualiser
+    build: BCCVL_Visualiser
     image: visualiser
     environment:
       NWORKERS: 2
