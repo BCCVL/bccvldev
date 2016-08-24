@@ -33,21 +33,18 @@ Getting Started
 .. code-block:: Shell
 
     source scripts/activate.sh
+
     # don't forget to log in to our registry
     docker login hub.bccvl.org.au
     docker-compose build
+
     # start and init storage container
     docker-compose up -d postgis
-    docker-compose exec --user postgres postgis createuser plone
-    docker-compose exec --user postgres postgis createdb -O plone plone
-    docker-compose exec --user postgres postgis psql -c "alter user plone with password 'plone';"
-    # init visualiser db
-    docker-compose exec --user postgres postgis createuser visualiser
-    docker-compose exec --user postgres postgis createdb -O visualiser visualiser
-    docker-compose exec --user postgres postgis psql -c "alter user visualiser with password 'visualiser';"
-    docker-compose exec --user postgres postgis psql -d visualiser -c "CREATE EXTENSION postgis;"
+    # wait until postgres is running, then kick off initialisation
+    ./scripts init.sh
+
     # build bccvl dev container
-    docker-compose run --rm bccvl ./bin/buildout -N -c development.cfg
+    ./scripts/buildout.sh
 
 
 4. Start all services
@@ -63,7 +60,7 @@ Getting Started
 .. code-block:: Shell
 
     # init bccvl site
-    docker-compose run --rm bccvl ./bin/instance manage
+    ./scripts/manage.sh
 
 
 Access Site
@@ -80,15 +77,16 @@ Install common test datasets
 .. code-block:: Shell
 
     # install test/dev datasets
-    docker-compose run --rm bccvl ./bin/instance testsetup --siteurl http://192.168.99.100:8080/bccvl/ --dev
-    docker-compose run --rm bccvl ./bin/instance testsetup --siteurl http://192.168.99.100:8080/bccvl/ --test
+    ./scripts/testsetup.sh --siteurl http://192.168.99.100:8080/bccvl/ --dev
+    ./scripts/testsetup.sh --siteurl http://192.168.99.100:8080/bccvl/ --test
+
 
 Run tests
 =========
 
 .. code-block:: Shell
 
-    docker-compose run --rm bccvl -u zope ./bin/test
+    ./sripts/test.sh
 
 Run Site upgrades
 =================
@@ -96,10 +94,11 @@ Run Site upgrades
 .. code-block:: Shell
 
     # run all available upgrade steps
-    docker-compose run --rm bccvl ./bin/instance manage --upgrade
+    ./srcipts/manage.sh --upgrade
 
     # re-run latest upgrade step
-    docker-compose run --rm bccvl ./bin/instance manage --lastupgrade
+    ./sripts/manage.sh --lastupgrade
+
 
 Run BCCVL instance in development mode
 ======================================

@@ -19,7 +19,6 @@
 #
 #  TODO: create manager user on command linee?
 #
-#    $ docker-compose build bccvl
 #    $ docker-compose run --rm bccvl ./bin/buildout -N -c development.cfg
 #    $ docker-compose run --rm bccvl ./bin/instance manage
 #
@@ -62,9 +61,7 @@ services:
   # bccvl web app
   bccvl:
     container_name: bccvl
-    build: bccvl
-    # set image name so that the same image can be used for other services
-    image: bccvl
+    image: hub.bccvl.org.au/bccvl/bccvl
     environment:
       # this port must match the exposed port in bccvlsshd
       SSH_PORT: 23
@@ -79,7 +76,8 @@ services:
       - "8080:8080"
     volumes:
       - sharedtmp:/tmp
-      - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini
+      - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini:ro
+      - ./bccvl/files/compose.cfg:/opt/bccvl/compose.cfg
       - ./src:/opt/bccvl/src
     command: ./bin/instance fg
 
@@ -102,9 +100,7 @@ services:
   # web worker ... for backend tasks running inside plone context
   bccvl_worker:
     container_name: bccvl_worker
-    build: bccvl
-    # set image name so that the same image can be used for other services
-    image: bccvl
+    image: hub.bccvl.org.au/bccvl/bccvl
     environment:
       # this port must match the exposed port in bccvlsshd
       SSH_PORT: 23
@@ -119,16 +115,15 @@ services:
       TZ: Australia/Brisbane
     volumes:
       - sharedtmp:/tmp
-      - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini
+      - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini:ro
+      - ./zope.conf:/etc/opt/bccvl/zope/zope.conf
       - ./src:/opt/bccvl/src
-    command: ./bin/celery worker --app=org.bccvl.tasks --queues=plone --hostname=plone@bccvl -I org.bccvl.tasks.plone
+    command: su bccvl -c "./bin/celery worker --app=org.bccvl.tasks --queues=plone --hostname=plone@bccvl -I org.bccvl.tasks.plone"
 
   # datamover worker ... backend process
   datamover_worker:
     container_name: datamover_worker
-    build: bccvl
-    # set image name so that the same image can be used for other services
-    image: bccvl
+    image: hub.bccvl.org.au/bccvl/bccvl
     environment:
       ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
       ST_USER: test:tester
@@ -149,12 +144,13 @@ services:
       TZ: Australia/Brisbane
     volumes:
       - ./src:/opt/bccvl/src
-      - ./bccvl/files/bccvl.ini:/etc/opt/zope/bccvl.ini
+      - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini:ro
       - ./bccvl.id_rsa:/opt/bccvl/.ssh/id_rsa
       - ./bccvl.id_rsa.pub:/opt/bccvl/.ssh/id_rsa.pub
       - ./bccvl.id_rsa:/root/.ssh/id_rsa
       - ./bccvl.id_rsa.pub:/root/.ssh/id_rsa.pub
-    command: ./bin/celery worker --app=org.bccvl.tasks --queues=datamover --hostname=datamover@bccvl -I org.bccvl.tasks.export_services,org.bccvl.tasks.datamover
+      - sharedtmp:/tmp
+    command: su bccvl -c "./bin/celery worker --app=org.bccvl.tasks --queues=datamover --hostname=datamover@bccvl -I org.bccvl.tasks.export_services,org.bccvl.tasks.datamover"
 
   nginx:
     container_name: nginx
@@ -220,7 +216,7 @@ services:
       - ./src/org.bccvl.tasks:/opt/worker/org.bccvl.tasks
       - ./src/org.bccvl.movelib:/opt/worker/org.bccvl.movelib
       - ./src/org.bccvl.compute:/opt/worker/org.bccvl.compute
-      - ./bccvl/files/bccvl.ini:/etc/opt/worker/bccvl.ini
+      - ./bccvl/files/bccvl.ini:/etc/opt/worker/bccvl.ini:ro
       - ./bccvl.id_rsa:/opt/worker/.ssh/id_rsa
       - ./bccvl/.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
       - ./bccvl.id_rsa:/root/.ssh/id_rsa
