@@ -2,6 +2,17 @@
 
 # TODO: create ssh keys, ssl certs, and other stuff here
 
+# helper method to wait until postgres is ready to accept connections
+function wait_for_postgis() {
+    docker-compose up -d postgis
+    # Wait for the postgres port to be available
+    until docker-compose run --rm -u postgres postgis /usr/pgsql-9.5/bin/pg_isready -h postgis; do
+        echo "waiting for postgres container..."
+        sleep 0.5
+    done
+}
+
+
 docker pull hub.bccvl.org.au/bccvl/bccvl
 
 # get initial zope.conf so that bccvl zope can be started up via compose (it has an image dependency)
@@ -10,7 +21,9 @@ cid=$(docker create hub.bccvl.org.au/bccvl/bccvl)
 docker cp ${cid}:/opt/bccvl/parts/instance/etc/zope.conf ./zope.conf
 docker rm ${cid}
 
-# TODO: bring postgis up and wait
+# Start database and set up inital users
+wait_for_postgis
+
 docker-compose exec --user postgres postgis createuser plone
 docker-compose exec --user postgres postgis createdb -O plone plone
 docker-compose exec --user postgres postgis psql -c "alter user plone with password 'plone';"
@@ -23,8 +36,6 @@ docker-compose exec --user postgres postgis psql -d visualiser -c "CREATE EXTENS
 
 # fix up visualiser permissions when running on sharedtmp
 docker-compose run --rm visualiser chown -R visualiser:visualiser /var/opt/visualiser/{bccvl,visualiser,visualiser_public}
-
-
 
 ###################
 ## Stuff below no longer needed ... keyt for reference
