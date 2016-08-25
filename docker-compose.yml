@@ -76,6 +76,7 @@ services:
       - "8080:8080"
     volumes:
       - sharedtmp:/tmp
+      - ./zope.conf:/etc/opt/bccvl/zope/zope.conf
       - ./bccvl/files/bccvl.ini:/etc/opt/bccvl/bccvl/bccvl.ini:ro
       - ./bccvl/files/compose.cfg:/opt/bccvl/compose.cfg
       - ./src:/opt/bccvl/src
