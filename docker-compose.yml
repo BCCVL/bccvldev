@@ -179,8 +179,7 @@ services:
   #       use uwsgi? (gunicorn has a habit of timing out for long requests)
   visualiser:
     container_name: visualiser
-    build: BCCVL_Visualiser
-    image: visualiser
+    image: hub.bccvl.org.au/bccvl/visualiser
     environment:
       NWORKERS: 2
       NTHREADS: 2
@@ -189,8 +188,7 @@ services:
       - "10600:10600"
     volumes:
       - sharedtmp:/var/opt/visualiser
-    #  - ./BCCVL_Visualiser/BCCVL_Visualiser:/opt/visualiser
-    command: /cmd.sh
+      - ./BCCVL_Visualiser/BCCVL_Visualiser:/opt/visualiser
 
   worker:
     container_name: worker
