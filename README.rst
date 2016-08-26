@@ -8,8 +8,8 @@ Getting Started
 ===============
 
 
-1. Create and start docker machine
-----------------------------------
+1. Create and start docker machine (docker-machine)
+---------------------------------------------------
 
 .. code-block:: Shell
 
@@ -31,8 +31,11 @@ Getting Started
 ----------------
 
 .. code-block:: Shell
-
+    # docker-machine
     source scripts/activate.sh
+
+
+.. code-block:: Shell
 
     # don't forget to log in to our registry
     docker login hub.bccvl.org.au

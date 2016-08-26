@@ -17,6 +17,7 @@ docker pull hub.bccvl.org.au/bccvl/bccvl
 
 # get initial zope.conf so that bccvl zope can be started up via compose (it has an image dependency)
 # TODO: if zope.conf is a directry remove it
+# TODO: check if it exists... and only overwrite if it is not set up to connect to postgis
 cid=$(docker create hub.bccvl.org.au/bccvl/bccvl)
 docker cp ${cid}:/opt/bccvl/parts/instance/etc/zope.conf ./zope.conf
 docker rm ${cid}
@@ -37,6 +38,7 @@ docker-compose exec --user postgres postgis psql -d visualiser -c "CREATE EXTENS
 # fix up visualiser permissions when running on sharedtmp
 docker-compose run --rm -w /opt/visualiser visualiser python setup.py develop
 
+docker-compose run --rm visualiser mkdir -p /var/opt/visualiser/visualiser_public
 docker-compose run --rm visualiser chown -R visualiser:visualiser /var/opt/visualiser/{bccvl,visualiser,visualiser_public}
 
 ###################
