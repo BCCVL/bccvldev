@@ -1,0 +1,41 @@
+version: '2.1'
+
+services:
+
+  nginxcloud9:
+    container_name: nginxcloud9
+    image: nginx:1.11-alpine
+    volumes:
+      - ./etc/cloud9.conf:/etc/nginx/conf.d/cloud9.conf:ro
+      - ./etc/nginx.key:/etc/ssl/private/self.key:ro
+      - ./etc/nginx.crt:/etc/ssl/certs/self.crt:ro
+    restart: always
+    ports:
+      - "8443:443"
+    networks:
+      bccvlnet:
+
+  cloud9:
+    container_name: cloud9
+    image: hub.bccvl.org.au/bccvl/cloud9
+    networks:
+      bccvlnet:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/cloud9/workspace
+    group_add:
+      - docker
+    restart: always
+    #user: "${UID}:${GID}"
+    environment:
+      C9_WORKSPACE: "/cloud9/workspace"
+      C9_EXTRA: "--collab -a ${C9_USER:-admin}:${C9_PASS:-admin}"
+      COMPOSE_FILE: "docker-compose.yml:cloud9.yml"
+      COMPOSE_PROJECT_NAME: "bccvldev"
+
+networks:
+  bccvlnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24

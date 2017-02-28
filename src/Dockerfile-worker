@@ -1,0 +1,9 @@
+FROM hub.bccvl.org.au/bccvl/bccvlworker:latest
+
+COPY org.bccvl.movelib/ ${WORKER_HOME}/org.bccvl.movelib/
+COPY org.bccvl.tasks/ ${WORKER_HOME}/org.bccvl.tasks/
+
+RUN pip install -e org.bccvl.movelib && \
+    pip install -e org.bccvl.tasks
+
+CMD ["/cmd.sh"]

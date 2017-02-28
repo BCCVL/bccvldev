@@ -1,0 +1,12 @@
+FROM hub.bccvl.org.au/bccvl/bccvl
+
+RUN buildout && \
+# compile all po files
+    for po in $(find . -path '*/LC_MESSAGES/*.po'); do msgfmt -o ${po/%po/mo} $po; done && \
+    chown -R ${BCCVL_USER}:${BCCVL_USER} $BCCVL_ETC && \
+    chown -R ${BCCVL_USER}:${BCCVL_USER} $BCCVL_VAR && \
+# make sure all files and folders are accessible by bccvl user
+    find eggs -type f -exec chmod 644 {} + && \
+    find eggs -type d -exec chmod 755 {} +
+
+CMD ["/cmd.sh"]

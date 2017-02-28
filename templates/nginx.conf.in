@@ -7,34 +7,26 @@
 # #add_header Content-Security-Policy "default-src 'self'; img-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 # add_header Content-Security-Policy-Report-Only "default-src 'self'; img-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 
-# This specifies which IP and port Plone is running on.
-# The default is 127.0.0.1:8080
-upstream plone {
-    server DOCKER_MACHINE_IP:8080;
-}
-
-upstream visualiser {
-    server DOCKER_MACHINE_IP:10600;
-}
-
-upstream swiftbrowser {
-    server DOCKER_MACHINE_IP:8000;
-}
-
+# use docker internal dns
+resolver 127.0.0.11 valid=10s;
 
 # Redirect all www-less traffic to the www.site.com domain
 # (you could also do the opposite www -> non-www domain)
 server {
     listen 80;
-    server_name DOCKER_MACHINE_IP;
-    rewrite ^/(.*) https://DOCKER_MACHINE_IP/$1 permanent;
+    server_name HOSTNAME;
+    return 301 https://$host$request_uri;
 }
-
 
 server {
 
+    set $visualiser visualiser:10600 ;
+    set $swiftbrowser swiftbrowser:8000 ;
+    set $bccvl bccvl:8080 ;
+    set $rabbitmq rabbitmq:15672 ;
+
     listen 443 ssl;
-    server_name DOCKER_MACHINE_IP;
+    server_name HOSTNAME;
 
     # TODO: add SSL cipher configurations and restrict to TLS
     ssl_certificate /etc/ssl/certs/self.crt;
@@ -53,7 +45,18 @@ server {
         # proxy_buffer_size 2k;
         # proxy_buffering off;
 
-        proxy_pass http://visualiser/;
+        rewrite ^/_visualiser/(.*) /$1 break ;
+        proxy_pass http://$visualiser;
+    }
+
+    location /_rabbitmq/ {
+        proxy_set_header Host            $host;
+        proxy_set_header X-Real-IP       $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        rewrite ^/_rabbitmq/(.*) /$1 break;
+        proxy_pass http://$rabbitmq ;
     }
 
     location /_swift/ {
@@ -63,17 +66,26 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         #proxy_set_header SCRIPT_NAME /myapp;
 
-        proxy_pass http://swiftbrowser/;
+        rewrite ^/_swift/(.*) /$1 break ;
+        proxy_pass http://$swiftbrowser;
         proxy_redirect off;
     }
 
+    location /_spatial/ {
+        proxy_pass http://spatial.ala.org.au/;
+        #ProxyPassReverse http://spatial.ala.org.au/
+    }
+
+    # TODO:
+    #   use 'proxy_buffering off' for some backends?
     location /_debug/ {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass http://plone/VirtualHostBase/https/DOCKER_MACHINE_IP:443/VirtualHostRoot/_vh__debug/;
+        rewrite ^/_debug/(.*) /VirtualHostBase/https/HOSTNAME:443/VirtualHostRoot/_vh__debug/$1 break;
+        proxy_pass http://$bccvl ;
     }
 
     location /_edit/ {
@@ -83,7 +95,8 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X_THEME_DISABLED 1;
 
-        proxy_pass http://plone/VirtualHostBase/https/DOCKER_MACHINE_IP:443/bccvl/VirtualHostRoot/_vh__edit/;
+        rewrite ^/_edit/(.*) /VirtualHostBase/https/HOSTNAME:443/VirtualHostRoot/_vh__edit/$1 break;
+        proxy_pass http://$bccvl ;
     }
 
     location / {
@@ -92,6 +105,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass http://plone/VirtualHostBase/https/DOCKER_MACHINE_IP:443/bccvl/VirtualHostRoot/;
+        rewrite ^/(.*) /VirtualHostBase/https/HOSTNAME:443/bccvl/VirtualHostRoot/$1 break;
+        proxy_pass http://$bccvl ;
     }
 }

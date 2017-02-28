@@ -1,0 +1,126 @@
+description: BCCVL Dev Env
+heat_template_version: '2016-04-08'
+outputs:
+  instance_ip:
+    description: The IP address of the deployed instance
+    value:
+      get_attr: [bccvldev_instance, first_address]
+  passwd:
+    description: Password to log in
+    value: {if: [{equals: [{get_param: cloud9_pass}, 'admin']}, {get_attr: [bccvldev_pw, value]}, {get_param: cloud9_pass}]}
+parameters:
+  name: {description: 'Instance Name, should be a dns compatible name to support urls like (<name>.nectar.bccvl.org.au)',
+         label: Instance Name,
+         type: string}
+  image_id: {description: Image to be used for compute instance,
+             label: Image ID,
+             type: string,
+             default: 2565ee74-60ec-4591-a19b-51e249045739}
+  instance_type: {description: Type of instance (flavor) to be used,
+                  label: Instance Type,
+                  type: string,
+                  default: m2.medium,
+                  constraints: [{custom_constraint: nova.flavor}]}
+  key_name: {description: Name of key-pair to be used for compute instance,
+             label: Key Name,
+             type: string,
+             default: BCCVL,
+             constraints: [{custom_constraint: nova.keypair}]}
+  cloud9_user: {description: user name used to log in to cloud9,
+                label: cloud9 user name,
+                type: string,
+                default: admin}
+  cloud9_pass: {description: password used to log in to cloud9,
+                label: cloud9 password,
+                type: string,
+                default: admin}
+resources:
+  bccvldev_instance:
+    properties:
+      availability_zone: QRIScloud
+      flavor: {get_param: instance_type}
+      image: {get_param: image_id}
+      key_name: {get_param: key_name}
+      name: {get_param: name}
+      security_groups:
+        - {get_resource: dev_secgroup}
+      user_data: {get_resource: boot_script}
+      user_data_format: SOFTWARE_CONFIG
+    type: OS::Nova::Server
+  bccvldev_pw:
+    properties:
+      character_classes: [{"min": 1, "class": "lettersdigits"}]
+      length: 12
+    type: OS::Heat::RandomString
+  boot_script:
+    properties:
+      config:
+        str_replace:
+          params:
+            __cloud9_pass__: {if: [{equals: [{get_param: cloud9_pass}, 'admin']}, {get_attr: [bccvldev_pw, value]}, {get_param: cloud9_pass}]}
+            __cloud9_user__: {get_param: cloud9_user}
+            __ipv4__: {get_attr: [bccvldev_instance, first_address]}
+            __dns__: {list_join: ['.', {get_param: name}, 'nectar.bccvl.org.au']}
+          template: '#!/bin/bash
+
+            echo "Running boot script"
+
+            # install required packages
+
+            yum -y update
+
+            yum install -y yum-utils git
+
+            yum-config-manager --add-repo https://docs.docker.com/engine/installation/linux/repo_files/centos/docker.repo
+
+            yum install -y docker-engine
+
+            yum clean all
+
+            systemctl enable docker.service
+
+            systemctl start docker.service
+
+            # allow ec2-user access to docker
+
+            usermod -a -G docker ec2-user
+
+            # install docker-compose
+
+            curl -L "https://github.com/docker/compose/releases/download/1.11.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+            chmod +x /usr/local/bin/docker-compose
+
+            # install cloud9 ide and start it up
+
+            sudo -i -u ec2-user -- git clone https://github.com/BCCVL/bccvldev
+
+            echo "C9_USER=__cloud9_user__" > /home/ec2-user/bccvldev/.env
+            echo "C9_PASS=__cloud9_pass__" >> /home/ec2-user/bccvldev/.env
+            echo "BCCVL_HOSTNAME=__dns__" >> /home/ec2-user/bccvldev/.env
+
+            echo "COMPOSE_FILE=docker-compose.yml:cloud9.yml" >> /home/ec2-user/bccvldev/.env
+            echo "COMPOSE_PROJECT_NAME=bccvldev" >> /home/ec2-user/bccvldev/.env
+
+            chown ec2-user:ec2-user /home/ec2-user/bccvldev/.env
+            chmod 600 /home/ec2-user/bccvldev/.env
+
+            sudo -i -u ec2-user -- bash -c "cd bccvldev; ./bin/gen_config.sh"
+            sudo -i -u ec2-user -- bash -c "cd bccvldev; docker-compose up -d nginxcloud9 cloud9"
+
+            '
+      group: ungrouped
+    type: OS::Heat::SoftwareConfig
+  dev_secgroup:
+    properties:
+      rules:
+      - {port_range_max: 80, port_range_min: 80, protocol: tcp, remote_ip_prefix: 132.234.148.0/24}
+      - {port_range_max: 443, port_range_min: 443, protocol: tcp, remote_ip_prefix: 132.234.148.0/24}
+      - {port_range_max: 22, port_range_min: 22, protocol: tcp, remote_ip_prefix: 132.234.148.0/24}
+    type: OS::Neutron::SecurityGroup
+  dns_entry:
+    properties:
+      data: {get_attr: [bccvldev_instance, first_address]}
+      type: A
+      domain: nectar.bccvl.org.au.
+    type: OS::Designate::Record

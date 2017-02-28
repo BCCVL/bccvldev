@@ -1,0 +1,7 @@
+FROM hub.bccvl.org.au/bccvl/visualiser
+
+COPY ./BCCVL_Visualiser/ /BCCVL_Visualiser/
+
+RUN pip install -e /BCCVL_Visualiser
+
+CMD ["visualiser"]

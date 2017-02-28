@@ -1,6 +1,3 @@
-nginx.conf
-nginx.crt
-nginx.key
-bccvl.id_rsa
-bccvl.id_rsa.pub
-volumes
+.env
+.c9
+etc

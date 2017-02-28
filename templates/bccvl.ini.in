@@ -1,7 +1,7 @@
 
 [cookie]
 name = __ac
-domain = 192.168.99.100
+domain = HOSTNAME
 secret = secret
 secure = False
 tokens = org.bccvl.DownloadDataset
@@ -16,8 +16,19 @@ verify = False
 #figshare_
 #googledrive_
 
-#[swift]
+[swift]
 # .. can all be done via envvars as well
+#os_username = g.weis@griffith.edu.au
+#os_temp_url_key = 12MyKey34
+#os_storage_url = https://swift.rc.nectar.org.au:8888/v1/AUTH_0bc40c2c2ff94a0b9404e6f960ae5677
+#os_tenant_name = Biodiversity_Climate_Change_VL
+#os_auth_url = https://keystone.rc.nectar.org.au:5000/v2.0/
+#os_auth_version = 2
+#os_password = MjZkYmEyODE4YzZkNzUx
+
+[ala]
+sandboxurl = http://sandbox-test.ala.org.au/sandbox/api/uploadFile
+apikey = 40587ac2-4f3e-4258-9173-3911d538e33d
 
 [loggers]
 keys = root, swiftclient
