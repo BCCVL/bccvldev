@@ -28,7 +28,11 @@ fi
 
 # create nginx.conf from template
 sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/nginx.conf.in > etc/nginx.conf
-sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/nginx.cloud9.conf.in > etc/cloud9.conf
+
+if [ ! -e 'etc/cloud9.conf '] ; then
+    # check if file exists.... shouldn't rewrite it when container is running
+    sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/nginx.cloud9.conf.in > etc/cloud9.conf
+fi
 
 
 #########################
@@ -59,3 +63,10 @@ if [ -d etc/bccvl.ini ] ; then
     rm -fr etc/bccvl.ini
 fi
 sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/bccvl.ini.in > etc/bccvl.ini
+
+# visualiser.ini file from template
+if [ -d etc/visualiser.ini ] ; then
+    # in case container got started early docker will cerate a directory
+    rm -fr etc/visualiser.ini
+fi
+cp templates/visualiser.ini etc/visualiser.ini

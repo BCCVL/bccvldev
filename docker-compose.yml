@@ -75,6 +75,7 @@ services:
       bccvlnet:
     volumes:
       - sharedtmp:/var/opt/visualiser
+      - ./etc/visualiser.ini:/etc/opt/visualiser/visualiser.ini
       - ./src/BCCVL_Visualiser/bccvl_visualiser:/BCCVL_Visualiser/bccvl_visualiser
 
   # bccvl web app
