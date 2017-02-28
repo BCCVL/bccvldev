@@ -41,6 +41,14 @@ parameters:
     label: cloud9 user name
     type: string
     default: admin
+  bccvlhub_user:
+    description: user to log in to bccvl docker registry
+    label: bccvl hub user
+    type: string
+  bccvlhub_pass:
+    description: password to log in to bccvl docker registry
+    label: bccvl hub password
+    type: string
 resources:
   bccvldev_instance:
     properties:
@@ -67,6 +75,8 @@ resources:
             __cloud9_pass__: {get_attr: [bccvldev_pw, value]}
             __cloud9_user__: {get_param: cloud9_user}
             __dns__: {list_join: ['.', [{get_param: name}, 'nectar.bccvl.org.au']]}
+            __bccvlhub_user__: {get_param: bccvlhub_user}
+            __bccvlhub_pass__: {get_param: bccvlhub_pass}
           template: |
             #!/bin/bash
 
@@ -98,11 +108,16 @@ resources:
 
             chmod +x /usr/local/bin/docker-compose
 
+            # setup bccvl hub
+            docker login -u __bccvlhub_user__ -p __bccvlhub_pass__ hub.bccvl.org.au
+            sudo -i -u ec2-user -- docker login -u __bccvlhub_user__ -p __bccvlhub_pass__ hub.bccvl.org.au
+
             # install cloud9 ide and start it up
 
             sudo -i -u ec2-user -- git clone https://github.com/BCCVL/bccvldev
 
-            echo "C9_USER=__cloud9_user__" > /home/ec2-user/bccvldev/.env
+            echo "C9_WORKSPACE=/home/ec2-user/bccvldev" > /home/ec2-user/bccvldev/.env
+            echo "C9_USER=__cloud9_user__" >> /home/ec2-user/bccvldev/.env
             echo "C9_PASS=__cloud9_pass__" >> /home/ec2-user/bccvldev/.env
             echo "BCCVL_HOSTNAME=__dns__" >> /home/ec2-user/bccvldev/.env
 
