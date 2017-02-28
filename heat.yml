@@ -56,7 +56,6 @@ resources:
         - {get_resource: dev_secgroup}
       user_data: {get_resource: boot_script}
       user_data_format: SOFTWARE_CONFIG
-      show: True
     type: OS::Nova::Server
   bccvldev_pw:
     properties:
