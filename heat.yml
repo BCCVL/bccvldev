@@ -3,37 +3,47 @@ heat_template_version: '2016-04-08'
 outputs:
   instance_ip:
     description: The IP address of the deployed instance
-    value:
-      get_attr: [bccvldev_instance, first_address]
+    value: {get_attr: [bccvldev_instance, first_address]}
+  publicip:
+    description: publicip
+    value: {get_attr: [bccvldev_instance, networks, public, 0]}
+  accessIPv4:
+    description: accessIPv4
+    value: {get_attr: [bccvldev_instance, accessIPv4]}
   passwd:
     description: Password to log in
-    value: {if: [{equals: [{get_param: cloud9_pass}, 'admin']}, {get_attr: [bccvldev_pw, value]}, {get_param: cloud9_pass}]}
+    value: {get_attr: [bccvldev_pw, value]}
 parameters:
-  name: {description: 'Instance Name, should be a dns compatible name to support urls like (<name>.nectar.bccvl.org.au)',
-         label: Instance Name,
-         type: string}
-  image_id: {description: Image to be used for compute instance,
-             label: Image ID,
-             type: string,
-             default: 2565ee74-60ec-4591-a19b-51e249045739}
-  instance_type: {description: Type of instance (flavor) to be used,
-                  label: Instance Type,
-                  type: string,
-                  default: m2.medium,
-                  constraints: [{custom_constraint: nova.flavor}]}
-  key_name: {description: Name of key-pair to be used for compute instance,
-             label: Key Name,
-             type: string,
-             default: BCCVL,
-             constraints: [{custom_constraint: nova.keypair}]}
-  cloud9_user: {description: user name used to log in to cloud9,
-                label: cloud9 user name,
-                type: string,
-                default: admin}
-  cloud9_pass: {description: password used to log in to cloud9,
-                label: cloud9 password,
-                type: string,
-                default: admin}
+  name:
+    description: 'Instance Name, should be a dns compatible name to support urls like (<name>.nectar.bccvl.org.au)'
+    label: Instance Name
+    type: string
+  image_id:
+    description: Image to be used for compute instance
+    label: Image ID
+    type: string
+    default: 2565ee74-60ec-4591-a19b-51e249045739
+    constraints:
+      - custom_constraint: glance.image
+  instance_type:
+    description: Type of instance (flavor) to be used
+    label: Instance Type
+    type: string
+    default: m2.medium
+    constraints:
+      - custom_constraint: nova.flavor
+  key_name:
+    description: Name of key-pair to be used for compute instance
+    label: Key Name
+    type: string
+    default: BCCVL
+    constraints:
+      - custom_constraint: nova.keypair
+  cloud9_user:
+    description: user name used to log in to cloud9
+    label: cloud9 user name
+    type: string
+    default: admin
 resources:
   bccvldev_instance:
     properties:
@@ -46,6 +56,7 @@ resources:
         - {get_resource: dev_secgroup}
       user_data: {get_resource: boot_script}
       user_data_format: SOFTWARE_CONFIG
+      show: True
     type: OS::Nova::Server
   bccvldev_pw:
     properties:
@@ -57,11 +68,11 @@ resources:
       config:
         str_replace:
           params:
-            __cloud9_pass__: {if: [{equals: [{get_param: cloud9_pass}, 'admin']}, {get_attr: [bccvldev_pw, value]}, {get_param: cloud9_pass}]}
+            __cloud9_pass__: {get_attr: [bccvldev_pw, value]}
             __cloud9_user__: {get_param: cloud9_user}
-            __ipv4__: {get_attr: [bccvldev_instance, first_address]}
-            __dns__: {list_join: ['.', {get_param: name}, 'nectar.bccvl.org.au']}
-          template: '#!/bin/bash
+            __dns__: {list_join: ['.', [{get_param: name}, 'nectar.bccvl.org.au']]}
+          template: |
+            #!/bin/bash
 
             echo "Running boot script"
 
@@ -108,7 +119,6 @@ resources:
             sudo -i -u ec2-user -- bash -c "cd bccvldev; ./bin/gen_config.sh"
             sudo -i -u ec2-user -- bash -c "cd bccvldev; docker-compose up -d nginxcloud9 cloud9"
 
-            '
       group: ungrouped
     type: OS::Heat::SoftwareConfig
   dev_secgroup:
@@ -120,6 +130,7 @@ resources:
     type: OS::Neutron::SecurityGroup
   dns_entry:
     properties:
+      name: {list_join: ['.', [{get_param: name}, 'nectar.bccvl.org.au.']]}
       data: {get_attr: [bccvldev_instance, first_address]}
       type: A
       domain: nectar.bccvl.org.au.
