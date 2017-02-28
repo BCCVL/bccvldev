@@ -22,13 +22,14 @@ services:
       bccvlnet:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - .:/cloud9/workspace
+      - "${PWD}:${PWD}"
     group_add:
       - docker
     restart: always
+    working_dir: "${PWD}"
     #user: "${UID}:${GID}"
     environment:
-      C9_WORKSPACE: "/cloud9/workspace"
+      C9_WORKSPACE: "${PWD}"
       C9_EXTRA: "--collab -a ${C9_USER:-admin}:${C9_PASS:-admin}"
       COMPOSE_FILE: "docker-compose.yml:cloud9.yml"
       COMPOSE_PROJECT_NAME: "bccvldev"
