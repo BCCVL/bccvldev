@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-source "./bin/settings.sh"
+. "./bin/settings.sh"
 
 if [ "$BCCVL_HOSTNAME" == "localhost" -o "$BCCVL_HOSTNAME" == "127.0.0.1" ] ; then
     echo "Can't run testsetup with $BCCVL_HOSTNAME"

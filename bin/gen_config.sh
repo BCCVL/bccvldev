@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-source "./bin/settings.sh"
+. "./bin/settings.sh"
 
 if [ ! -e etc ] ; then
     mkdir etc

@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-source "./bin/settings.sh"
+. "./bin/settings.sh"
 
 # helper method to wait until postgres is ready to accept connections
 function wait_for_postgres() {

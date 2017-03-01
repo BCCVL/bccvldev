@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 
-if [ -e '.env' ] ; then
-    source '.env'
+if [ -e './.env' ] ; then
+    . './.env'
 fi
 
 if [ -z $BCCVL_HOSTNAME ] ; then
