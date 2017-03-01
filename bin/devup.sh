@@ -6,9 +6,9 @@ source "./bin/settings.sh"
 function wait_for_postgres() {
     docker-compose up -d postgres
     # Wait for the postgres port to be available
+    echo "waiting for postgres container..."
     until docker-compose run --rm -u postgres postgres /usr/pgsql-9.5/bin/pg_isready -h postgres; do
-        echo "waiting for postgres container..."
-        sleep 1
+        sleep 5
     done
 }
 
@@ -18,6 +18,7 @@ function init_postgres() {
     # Start database and set up inital users
     wait_for_postgres
     sleep 5
+    wait_for_postgres
 
     docker-compose exec --user postgres postgres createuser plone
     docker-compose exec --user postgres postgres createdb -O plone plone
