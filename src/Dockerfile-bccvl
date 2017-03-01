@@ -1,10 +1,10 @@
 FROM hub.bccvl.org.au/bccvl/bccvl
 
-ARGS ADMIN_PASS
+ARG ADMIN_PASS
 
 COPY bccvl_buildout/files/ /opt/bccvl/
 
-RUN export ADMIN_PASS=${ADMIN_PASS}
+RUN export ADMIN_PASS=${ADMIN_PASS} && \
     buildout && \
 # compile all po files
     for po in $(find . -path '*/LC_MESSAGES/*.po'); do msgfmt -o ${po/%po/mo} $po; done && \
