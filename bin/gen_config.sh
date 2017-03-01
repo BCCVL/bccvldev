@@ -29,7 +29,10 @@ fi
 # create nginx.conf from template
 sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/nginx.conf.in > etc/nginx.conf
 
-if [ ! -e 'etc/cloud9.conf '] ; then
+if [ -d 'etc/cloud9.conf' ] ; then
+    rm -fr 'etc/cloud9.cnof'
+fi
+if [ ! -e 'etc/cloud9.conf' ] ; then
     # check if file exists.... shouldn't rewrite it when container is running
     sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/nginx.cloud9.conf.in > etc/cloud9.conf
 fi
