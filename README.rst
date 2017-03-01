@@ -1,115 +1,173 @@
-
-===============
-Docker Machine:
-===============
-
-
-Getting Started
-===============
+=============
+BCCVL Dev Env
+=============
 
 
-1. Create and start docker machine (docker-machine)
----------------------------------------------------
+Use Heat:
+---------
 
-.. code-block:: Shell
+1. setup names
 
-    docker-machine create --driver virtualbox --virtualbox-cpu-count 4 --virtualbox-memory 4096 bccvldev
-    docker-machine start bccvldev
+    .. code-block:: bash
 
+       STACK_NAME=<mystack>
+       SERVER_NAME=<myserver>
+       BCCVLHUB_USER=<user>
+       BCCVLHUB_PASS=<pass>
 
-2. Clone dev env
-----------------
+2. create stack
 
-.. code-block:: Shell
+    .. code-block:: bash
 
-    git clone git@github.com:BCCVL/bccvldev
-    cd bccvldev
-    git clone -b docker git@github.com:BCCVL/BCCVL_Visualiser
+        openstack stack create \
+            --parameter name=${SERVER_NAME} \
+            --parameter bccvlhub_user=${BCCVLHUB_USER} \
+            --parameter bccvlhub_pass=${BCCVLHUB_PASS} \
+            -t https://raw.githubusercontent.com/BCCVL/bccvldev/master/heat.yml \
+            ${STACK_NAME}
 
+3. wait for stack to set up everything
 
-3. Build dev env
-----------------
+    .. code-block:: bash
 
-.. code-block:: Shell
-    # docker-machine
-    source scripts/activate.sh
+        # show status of stack
+        openstack stack show ${STACK_NAME}
 
+        # show output of stack (reveals admin password to log into services)
+        openstack stack output show --all ${STACK_NAME}
 
-.. code-block:: Shell
+        # show logs for created instance
+        openstack console log show --lines 200 ${SERVER_NAME}
 
-    # don't forget to log in to our registry
-    docker login hub.bccvl.org.au
-    docker-compose build
+4. open browser
 
-    # start and init storage container
-    docker-compose up -d postgis
-    # wait until postgres is running, then kick off initialisation
-    ./scripts init.sh
+    .. code-bolkc:: bash
 
-    # build bccvl dev container
-    ./scripts/buildout.sh
+        # OS-X
+        open "https://${SERVER_NAME}.nectar.bccvl.org.au:8443"
 
+        # Linux
+        xdg-open "https://${SERVER_NAME}.nectar.bccvl.org.au:8443"
 
-4. Start all services
----------------------
+        # Windows
+        start "https://${SERVER_NAME}.nectar.bccvl.org.au:8443"
 
-.. code-block:: Shell
+5. bootstrap dev env
 
-    docker-compose up -d
+    inside a terminal in the cloud9 dev env
 
-5. Create initial site
-----------------------
+    .. code-block:: bash
 
-.. code-block:: Shell
+        # log in to docker registry
+        docker login hub.bccvl.org.au
 
-    # init bccvl site
-    ./scripts/manage.sh
+        # get correct buildout branch
+        ./bin/git_clone.sh
+        pushd src/bccvl_buildout
+        git checkout feature/develop_docker
+        popd
 
+        # bootstrap dev env
+        ./bin/devup.sh
 
-Access Site
-===========
+6. trea down entire stack
 
-The script activate.sh prints the IP adress docker-machine is listening on. Use this email address to access the running services.
+    .. code-block:: bash
 
-Direct access to Plone instance: http://192.168.99.100:8080
-Access to BCCVL site: https://192.168.99.100
-
-Install common test datasets
-============================
-
-.. code-block:: Shell
-
-    # install test/dev datasets
-    ./scripts/testsetup.sh --siteurl http://192.168.99.100:8080/bccvl/ --dev
-    ./scripts/testsetup.sh --siteurl http://192.168.99.100:8080/bccvl/ --test
+        openstack stack delete -y ${STACK_NAME}
 
 
-Run tests
-=========
+Docker for Mac or Linux:
+------------------------
 
-.. code-block:: Shell
+1. clone dev repo
 
-    ./sripts/test.sh
+    .. code-block:: bash
 
-Run Site upgrades
-=================
+        git clone https://github.com/BCCVL/bccvldev
 
-.. code-block:: Shell
+2. optionally use cloud9 dev env
 
-    # run all available upgrade steps
-    ./srcipts/manage.sh --upgrade
+    Due to permission problems on Linux, it may be easier to start up the cloud9 dev env and use the terminal inside
 
-    # re-run latest upgrade step
-    ./sripts/manage.sh --lastupgrade
+    .. code-block:: bash
+
+        ./bin/gen_config.sh
+        docker-compose up -d nginxcloud9 cloud9
+
+3. bootstrop dev env
+
+    .. code-block:: bash
+
+        ./bin/devup.sh
+
+4. destroy dev env
+
+    **Warning**: this may remove other containers and volumes from other projects as well. It clears everything not running or untagged managed by docker daemon.
+
+    .. code-block:: bash
+
+        sh ./bin/cleanup.sh
+
+Vagrant: (suitable for Windows)
+-------------------------------
+
+The source code can be accessed via a samba share on 192.168.99.100
+
+1. build VM
+
+    .. code-block:: bash
+
+        vagrant up
+
+2. bring up Web IDE
+
+    .. code-block:: bash
+
+        vagrant ssh
+        cd bccvldev
+        /usr/local/bin/docker-compose up -d nginxcloud9 cloud9
+
+3. log in the IDE
+
+    .. code-block:: bash
+
+        open https://192.168.99.100:8443
+
+4. bring up dev env
+
+    inside terminal in web ide
+
+    .. code-block:: bash
+
+        # log in to docker registry
+        docker login hub.bccvl.org.au
+
+        # get correct buildout branch
+        ./bin/git_clone.sh
+        pushd src/bccvl_buildout
+        git checkout feature/develop_docker
+        popd
+
+        # bootstrap dev env
+        ./bin/devup.sh
+
+5. destroy dev env
+
+    .. code-block:: bash
+
+        vagrant destroy
 
 
-Run BCCVL instance in development mode
-======================================
 
-.. code-block:: Shell
+TODOs
+=====
 
-    # stop bccvl container in case it is running
-    docker-compose stop bccvl
+    - document all helper scripts
+    - document start/stop of services, how to run interactively for debugging, etc...
+    - document how to run interactive debugger (esp. for celery backend jobs)
+      -> probably best to add a telnet container and use that to connect to remote debugger
+    - vagrant setup may need some more disk space (configurable?)
+    - maybe add local swift server to setup ?
+    - devup.sh sometimes fails due to relstorage or zodb conflict errors ... (add some delays? or make steps manual?)
 
-    # start zope instance in foreground mode
-    docker-compose run --rm --service-ports bccvl ./bin/instance fg
