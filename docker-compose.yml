@@ -93,7 +93,7 @@ services:
       PTS_LANGUAGES: en de
       zope_i18n_allowed_languages: en de
       #zope_i18n_compile_mo_files: true
-      BROKER_URL: amqp://admin:admin@rabbitmq/
+      BROKER_URL: "amqp://admin:${C9_PASS:-admin}@rabbitmq/"
       ADMINS: admin@dev.bccvl.org.au
       CELERY_TIMEZONE: Australia/Brisbane
       TZ: Australia/Brisbane
@@ -128,7 +128,7 @@ services:
       PTS_LANGUAGES: en de
       zope_i18n_allowed_languages: en de
       #zope_i18n_compile_mo_files: true
-      BROKER_URL: amqp://admin:admin@rabbitmq/
+      BROKER_URL: "amqp://admin:${C9_PASS:-admin}@rabbitmq/"
       ADMINS: admin@dev.bccvl.org.au
       CELERYD_CONCURRENCY: 1
       CELERY_TIMEZONE: Australia/Brisbane
@@ -170,7 +170,7 @@ services:
       PTS_LANGUAGES: en de
       zope_i18n_allowed_languages: en de
       #zope_i18n_compile_mo_files: true
-      BROKER_URL: amqp://admin:admin@rabbitmq/
+      BROKER_URL: "amqp://admin:${C9_PASS:-admin}@rabbitmq/"
       ADMINS: admin@dev.bccvl.org.au
       CELERYD_CONCURRENCY: 2
       CELERY_TIMEZONE: Australia/Brisbane
@@ -211,7 +211,7 @@ services:
       # BCCVL specific
       BCCVL_CONFIG: /etc/opt/worker/bccvl.ini
       # CELERY CONFIG
-      BROKER_URL: amqp://admin:admin@rabbitmq/
+      BROKER_URL: "amqp://admin:${C9_PASS:-admin}@rabbitmq/"
       ADMINS: g.weis@griffith.edu.au
       CELERY_TIMEZONE: Australia/Brisbane
       CELERYD_CONCURRENCY: 2
