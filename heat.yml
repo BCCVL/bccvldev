@@ -88,6 +88,14 @@ resources:
 
             yum install -y yum-utils git
 
+            # update kernel
+            rpm --import "https://www.elrepo.org/RPM-GPG-KEY-elrepo.org"
+            rpm -Uvh "http://www.elrepo.org/elrepo-release-7.0-2.el7.elrepo.noarch.rpm"
+            yum --enablerepo=elrepo-kernel install -y kernel-ml
+            # set new kernel as default
+            grub2-set-default 0
+
+            # install docker
             yum-config-manager --add-repo https://docs.docker.com/engine/installation/linux/repo_files/centos/docker.repo
 
             yum install -y docker-engine
@@ -128,7 +136,14 @@ resources:
             chmod 600 /home/ec2-user/bccvldev/.env
 
             sudo -i -u ec2-user -- bash -c "cd bccvldev; ./bin/gen_config.sh"
-            sudo -i -u ec2-user -- bash -c "cd bccvldev; /usr/local/bin/docker-compose up -d nginxcloud9 cloud9"
+
+            # TODO: maybe a systemd unit file would be best here?
+            echo '#!/bin/sh' > /var/lib/cloud/scripts/per-boot/cloud9.sh
+            echo 'sudo -i -u ec2-user -- bash -c "cd bccvldev; /usr/local/bin/docker-compose up -d nginxcloud9 cloud9"' >> /var/lib/cloud/scripts/per-boot/cloud9.sh
+            chmod +x /var/lib/cloud/scripts/per-boot/cloud9.sh
+
+            # reboot to activate new kernel
+            reboot
 
       group: ungrouped
     type: OS::Heat::SoftwareConfig
