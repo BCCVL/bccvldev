@@ -13,8 +13,8 @@ ensure_src() {
 
 clone() {
     local DIR=$1
-    local PULL_URL="https://github.com/BCCVL/${DIR}"
-    local PUSH_URL="git@github.com:BCCVL/${DIR}"
+    local PULL_URL="https://github.com/BCCVL/${DIR}.git"
+    local PUSH_URL="git@github.com:BCCVL/${DIR}.git"
 
     ensure_src
     pushd src
