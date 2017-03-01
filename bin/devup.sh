@@ -40,12 +40,10 @@ init_postgres
 docker-compose build --pull
 # 5. run buildout
 ./bin/buildout.sh
-# 6. install initial site
-./bin/manage.sh
-# 7. start up everything
+# 6. start up everything
 docker-compose up -d
-# 8. cerate initial site
-./bin/manage.sh  --id bccvl --title BCCVL
+# 7. cerate initial site
+./bin/manage.sh
 # 9. install dev/test data
 ./bin/testsetup.sh --dev
 ./bin/testsetup.sh --test
