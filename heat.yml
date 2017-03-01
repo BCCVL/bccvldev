@@ -78,7 +78,7 @@ resources:
             __bccvlhub_user__: {get_param: bccvlhub_user}
             __bccvlhub_pass__: {get_param: bccvlhub_pass}
           template: |
-            #!/bin/bash
+            #!/bin/sh
 
             echo "Running boot script"
 
