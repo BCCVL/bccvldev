@@ -19,7 +19,7 @@ services:
     hostname: rabbitmq  # needed to access same config everytime
     environment:
       RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_PASS: "${C9_PASS:-admin}"
       RABBITMQ_DEFAULT_VHOST: /
     #ports:
     #  - "5671:5671"
@@ -85,6 +85,8 @@ services:
     build:
       context: ./src
       dockerfile: Dockerfile-bccvl
+      args:
+        ADMIN_PASS: "${C9_PASS:-admin}"
     environment:
       # this port must match the exposed port in bccvlsshd
       SSH_PORT: 23
@@ -118,6 +120,8 @@ services:
     build:
       context: ./src
       dockerfile: Dockerfile-bccvl
+      args:
+        ADMIN_PASS: "${C9_PASS:-admin}"
     environment:
       # this port must match the exposed port in bccvlsshd
       SSH_PORT: 23
@@ -151,6 +155,8 @@ services:
     build:
       context: ./src
       dockerfile: Dockerfile-bccvl
+      args:
+        ADMIN_PASS: "${C9_PASS:-admin}"
     environment:
       #ST_AUTH: http://192.168.99.100:5050/auth/v1.0/
       #ST_USER: test:tester
