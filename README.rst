@@ -163,11 +163,12 @@ The source code can be accessed via a samba share on 192.168.99.100
 TODOs
 =====
 
-    - document all helper scripts
-    - document start/stop of services, how to run interactively for debugging, etc...
-    - document how to run interactive debugger (esp. for celery backend jobs)
+    - document: all helper scripts
+    - document: start/stop of services, how to run interactively for debugging, etc...
+    - document: how to run interactive debugger (esp. for celery backend jobs)
       -> probably best to add a telnet container and use that to connect to remote debugger
-    - vagrant setup may need some more disk space (configurable?)
-    - maybe add local swift server to setup ?
-    - devup.sh sometimes fails due to relstorage or zodb conflict errors ... (add some delays? or make steps manual?)
+    - vagrant: setup may need some more disk space (configurable?)
+    - devenv: maybe add local swift server to setup ?
+    - devup.sh: sometimes fails due to relstorage or zodb conflict errors ... (add some delays? or make steps manual?)
+    - heat: mount full home directory into cloud9 container /root ? -> would allow access to docker config setup on host vm
 
