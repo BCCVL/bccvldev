@@ -33,7 +33,6 @@ clone() {
         fi
         if [ "$PULL_URL" !=  "$url" ]; then
             echo "Clone $DIR exists, but pull url doesn't match $PULL_URL"
-            return
         fi
     else
 
@@ -43,8 +42,8 @@ clone() {
 
     local url=$(git -C $DIR remote get-url --push origin 2> /dev/null)
     if [ $? -ne 0 ] ; then
-        # ignore errors here?
-        return
+        echo "Can't get git push url for $DIR"
+        exit 1
     fi
     if [ "$PULL_URL" == "$url" ] ; then
         # pull url same as push url ... set up push url as well
