@@ -229,7 +229,7 @@ services:
       - ./etc/bccvl.id_rsa:/root/.ssh/id_rsa
       - ./etc/bccvl.id_rsa.pub:/root/.ssh/id_rsa.pub
     ports:
-      - "6900-6020:6900:6020"
+      - "6900-6020:6900-6020"
     networks:
       bccvlnet:
     command: celery worker --app=org.bccvl.tasks --loglevel=INFO --queues=worker --hostname=worker@bccvl -I org.bccvl.tasks.compute
