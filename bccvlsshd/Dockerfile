@@ -1,6 +1,7 @@
 FROM hub.bccvl.org.au/centos/centos7-epel:2017-02-20
 
-RUN yum install -y openssh-server openssh-clients && \
+RUN rm -fr /var/lib/yum/yumdb/* && \
+    yum install -y openssh-server openssh-clients && \
     yum clean all
 
 ENV BCCVL_USER bccvl
