@@ -220,9 +220,9 @@ services:
       WORKDIR: /var/opt/worker/workdir
     volumes:
       - sharedtmp:/var/opt/worker
-      - ./src/org.bccvl.compute/:/opt/bccvl/src/org.bccvl.compute/
-      - ./src/org.bccvl.movelib/:/opt/bccvl/src/org.bccvl.movelib/
-      - ./src/org.bccvl.tasks/:/opt/bccvl/src/org.bccvl.tasks/
+      - ./src/org.bccvl.compute/:/opt/worker/org.bccvl.compute/
+      - ./src/org.bccvl.movelib/:/opt/worker/org.bccvl.movelib/
+      - ./src/org.bccvl.tasks/:/opt/worker/org.bccvl.tasks/
       - ./etc/bccvl.ini:/etc/opt/worker/bccvl.ini:ro
       - ./etc/bccvl.id_rsa:/opt/worker/.ssh/id_rsa
       - ./etc/bccvl/.id_rsa.pub:/opt/worker/.ssh/id_rsa.pub
