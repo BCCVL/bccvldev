@@ -7,6 +7,6 @@ if [ "$BCCVL_HOSTNAME" == "localhost" -o "$BCCVL_HOSTNAME" == "127.0.0.1" ] ; th
     exit 1
 fi
 
-docker-compose run --rm bccvl ./bin/instance testsetup --siteurl https://${BCCVL_HOSTNAME} $@
+docker-compose run --rm bccvl ./bin/instance testsetup --siteurl https://${BCCVL_HOSTNAME} "$@"
 
 #docker-compose run --rm bccvl ./bin/instance testsetup $@
