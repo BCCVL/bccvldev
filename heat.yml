@@ -157,10 +157,10 @@ resources:
       - {port_range_max: 8443, port_range_min: 8443, protocol: tcp, remote_ip_prefix: 132.234.148.0/24}
       - {port_range_max: 22, port_range_min: 22, protocol: tcp, remote_ip_prefix: 132.234.148.0/24}
     type: OS::Neutron::SecurityGroup
-#  dns_entry:
-#    properties:
-#      name: {list_join: ['.', [{get_param: name}, 'nectar.bccvl.org.au.']]}
-#      data: {get_attr: [bccvldev_instance, accessIPv4]}
-#      type: A
-#      domain: nectar.bccvl.org.au.
-#    type: OS::Designate::Record
+  dns_entry:
+    properties:
+      name: {get_param: name}
+      data: {get_attr: [bccvldev_instance, accessIPv4]}
+      type: A
+      zone: nectar.bccvl.org.au.
+    type: OS::Designate::RecordSet
