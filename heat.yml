@@ -19,7 +19,7 @@ parameters:
     description: Image to be used for compute instance
     label: Image ID
     type: string
-    default: 2565ee74-60ec-4591-a19b-51e249045739
+    default: 5f9cd393-8fe1-45dc-b6c6-c1b93df2476d
     constraints:
       - custom_constraint: glance.image
   instance_type:
