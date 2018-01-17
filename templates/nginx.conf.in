@@ -59,23 +59,6 @@ server {
         proxy_pass http://$rabbitmq ;
     }
 
-    location /_swift/ {
-        proxy_set_header Host            $host;
-        proxy_set_header X-Real-IP       $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        #proxy_set_header SCRIPT_NAME /myapp;
-
-        rewrite ^/_swift/(.*) /$1 break ;
-        proxy_pass http://$swiftbrowser;
-        proxy_redirect off;
-    }
-
-    location /_spatial/ {
-        proxy_pass http://spatial.ala.org.au/;
-        #ProxyPassReverse http://spatial.ala.org.au/
-    }
-
     # TODO:
     #   use 'proxy_buffering off' for some backends?
     location /_debug/ {
