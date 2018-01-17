@@ -63,14 +63,11 @@ Use Heat:
 
         # get correct buildout branch
         ./bin/git_clone.sh
-        pushd src/bccvl_buildout
-        git checkout feature/develop_docker
-        popd
 
         # bootstrap dev env
         ./bin/devup.sh
 
-6. trea down entire stack
+6. tear down entire stack
 
     .. code-block:: bash
 
@@ -80,28 +77,21 @@ Use Heat:
 Docker for Mac or Linux:
 ------------------------
 
+Use with whatever IDE you prefer.
+
 1. clone dev repo
 
     .. code-block:: bash
 
         git clone https://github.com/BCCVL/bccvldev
 
-2. optionally use cloud9 dev env
-
-    Due to permission problems on Linux, it may be easier to start up the cloud9 dev env and use the terminal inside
-
-    .. code-block:: bash
-
-        ./bin/gen_config.sh
-        docker-compose up -d nginxcloud9 cloud9
-
-3. bootstrop dev env
+2. bootstrop dev env
 
     .. code-block:: bash
 
         ./bin/devup.sh
 
-4. destroy dev env
+3. destroy dev env
 
     **Warning**: this may remove other containers and volumes from other projects as well. It clears everything not running or untagged managed by docker daemon.
 
@@ -116,25 +106,35 @@ The source code can be accessed via a samba share on 192.168.99.100
 
 1. build VM
 
+    You can set env variables to configure some aspects of the built VM.
+    This is entirely optional. If hub credentials are not set, you can login
+    later when VM is running. If admin password is not set, then provisioner
+    will create one.
+
+    .. code-block:: bash
+        # pre define admin password
+        export C9_PASS=
+        # set bccvl hub user and password so that provisioner will log vm in
+        export BCCVL_HUB_USER=
+        export BCCVL_HUB_PASS=
+
+    # bring up VM
+
     .. code-block:: bash
 
+        # install useful vagrant plugins
+        vagrant plugin install vagrant-vbguest vagrant-reload
         vagrant up
 
-2. bring up Web IDE
+        # Note password echoed to console
 
-    .. code-block:: bash
-
-        vagrant ssh
-        cd bccvldev
-        /usr/local/bin/docker-compose up -d nginxcloud9 cloud9
-
-3. log in the IDE
+2. log in the IDE
 
     .. code-block:: bash
 
         open https://192.168.99.100:8443
 
-4. bring up dev env
+3. bring up dev env
 
     inside terminal in web ide
 
@@ -145,20 +145,41 @@ The source code can be accessed via a samba share on 192.168.99.100
 
         # get correct buildout branch
         ./bin/git_clone.sh
-        pushd src/bccvl_buildout
-        git checkout feature/develop_docker
-        popd
 
         # bootstrap dev env
         ./bin/devup.sh
 
-5. destroy dev env
+4. destroy dev env
 
     .. code-block:: bash
 
         vagrant destroy
 
+Usage:
+======
 
+- changes to bccvl_buildout:
+
+    Run ``docker-compose build bccvl`` . This will rebuild the development container applying the changed buildout configuration.
+
+    In case of changes to checkouts.cfg you probably want to run ``./bin/buildout.sh`` as well.
+
+- run plone instance in foreground mode:
+
+    ``docker-compose run --rm --service-ports --name bccvl bccvl ./bin/instance fg``.
+    Alternatively start the container with a shell and run the instance.
+    ``docker-compose run --rm --service-ports --name bccvl bccvl bash``
+    ``./bin/instance fg``. Any changes made to files in the container will be gone as soon as the container exits.
+
+    If a container with name ``bccvl`` already exists run ``docker-compose rm bccvl`` first.
+
+- recreate containers / services
+
+    .. code-block:: bash
+
+        docker-compose stop <service>
+        docker-compose rm <service>
+        docker-compose up -d <service>
 
 TODOs
 =====
@@ -170,5 +191,3 @@ TODOs
     - vagrant: setup may need some more disk space (configurable?)
     - devenv: maybe add local swift server to setup ?
     - devup.sh: sometimes fails due to relstorage or zodb conflict errors ... (add some delays? or make steps manual?)
-    - heat: mount full home directory into cloud9 container /root ? -> would allow access to docker config setup on host vm
-

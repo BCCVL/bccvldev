@@ -23,20 +23,15 @@ if [ ! -e etc/nginx.key ] ; then
     openssl req -new -subj "$SUBJ" -key nginx.key -out nginx.csr
     openssl x509 -req -days 365 -in nginx.csr -signkey nginx.key -out nginx.crt
     rm nginx.csr
+
+    # create combined pem file
+    cat nginx.crt nginx.key > nginx.pem
+    chown 0600 nginx.pem
     popd
 fi
 
 # create nginx.conf from template
 sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/nginx.conf.in > etc/nginx.conf
-
-if [ -d 'etc/cloud9.conf' ] ; then
-    rm -fr 'etc/cloud9.cnof'
-fi
-if [ ! -e 'etc/cloud9.conf' ] ; then
-    # check if file exists.... shouldn't rewrite it when container is running
-    sed -e "s/HOSTNAME/${BCCVL_HOSTNAME}/g" templates/nginx.cloud9.conf.in > etc/cloud9.conf
-fi
-
 
 #########################
 # ssh config

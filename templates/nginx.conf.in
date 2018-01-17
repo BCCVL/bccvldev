@@ -21,7 +21,6 @@ server {
 server {
 
     set $visualiser visualiser:10600 ;
-    set $swiftbrowser swiftbrowser:8000 ;
     set $bccvl bccvl:8080 ;
     set $rabbitmq rabbitmq:15672 ;
 
@@ -40,6 +39,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Vhm-Host $scheme://$server_name:$server_port/_visualiser;
 
         # proxy_buffers 16 4k;
         # proxy_buffer_size 2k;
@@ -95,7 +95,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X_THEME_DISABLED 1;
 
-        rewrite ^/_edit/(.*) /VirtualHostBase/https/HOSTNAME:443/VirtualHostRoot/_vh__edit/$1 break;
+        rewrite ^/_edit/(.*) /VirtualHostBase/https/HOSTNAME:443/bccvl/VirtualHostRoot/_vh__edit/$1 break;
         proxy_pass http://$bccvl ;
     }
 

@@ -39,16 +39,19 @@ Vagrant.configure("2") do |config|
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
 
+  # disable default synced folder
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
   # Example for VirtualBox:
   #
-  config.vm.provider "virtualbox" do |vb|
+  config.vm.provider "VirtualBox" do |vb|
     # Display the VirtualBox GUI when booting the machine
     # vb.gui = true
 
     # Customize the amount of memory on the VM:
-    vb.memory = "2048"
+    vb.memory = "6144"
   end
   #
   # View the documentation for the provider you are using for more
@@ -64,98 +67,157 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", inline: <<-SHELL
-    yum -y upgrade
-    yum install -y yum-utils git samba samba-common
+  config.vm.provision "shell" do |s|
+    s.inline = <<-SHELL
+        yum -y upgrade
+        yum install -y yum-utils device-mapper-persistent-data lvm2 git
 
-    # update kernel
-    rpm --import "https://www.elrepo.org/RPM-GPG-KEY-elrepo.org"
-    rpm -Uvh "http://www.elrepo.org/elrepo-release-7.0-2.el7.elrepo.noarch.rpm"
-    yum --enablerepo=elrepo-kernel install -y kernel-ml
-    # set new kernel as default
-    grub2-set-default
+        # update kernel
+        rpm --import "https://www.elrepo.org/RPM-GPG-KEY-elrepo.org"
+        rpm -Uvh "http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm"
+        yum --enablerepo=elrepo-kernel install -y kernel-ml kernel-ml-devel
+        # set new kernel as default
+        grub2-set-default 0
 
-    # configure samba
-    cat << EOF > /etc/samba/smb.conf
-    [global]
-    workgroup = WORKGROUP
-    server string = Samba Server %v
-    netbios name = bccvl
-    security = user
-    map to guest = bad user
-    dns proxy = no
-    # share vagrant home
-    [vagrant]
-    path = /home/vagrant
-    browseable = yes
-    writeable = yes
-    guest ok = no
-    read only = no
-    valid users = vagrant
-    force user = root
-    force group = root
-    hide dot files = no
-    hosts allow = 192.168.99.0/255.255.255.0
-    EOF
+        # disable restrictive selinux (causes ssh login issues)
+        sed -i'' -e 's/SELINUX=.*/SELINUX=permissive/' /etc/sysconfig/selinux
+        sed -i'' -e 's/SELINUX=.*/SELINUX=permissive/' /etc/selinux/configy
+    SHELL
+  end
+  config.vm.provision :reload
+  config.vm.provision "shell" do |s|
+    s.env = {
+        "C9_PASS" => ENV["C9_PASS"],
+        "BCCVL_HUB_USER" => ENV["BCCVL_HUB_USER"],
+        "BCCVL_HUB_PASS" => ENV["BCCVL_HUB_PASS"]
+    }
+    s.inline = <<~SHELL
+        # install epel for pwgen
+        yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 
-    echo 'vagrant' | tee - | smbpasswd -a -s vagrant
-    # allow samba on home folder
-    chcon -R -t samba_share_t /home/vagrant
+        # install samba
+        yum install -y samba samba-common pwgen
 
-    systemctl enable smb.service
-    systemctl enable nmb.service
-    systemctl restart smb.service
-    systemctl restart nmb.service
+        # gen pw if needed
+        if [ -z "$C9_PASS" ] ; then
+            export C9_PASS=$(pwgen -cns 10 1)
+        fi
 
-    # install docker
-    yum-config-manager --add-repo https://docs.docker.com/engine/installation/linux/repo_files/centos/docker.repo
+        # configure samba
+        cat << EOF > /etc/samba/smb.conf
+        [global]
+        workgroup = WORKGROUP
+        server string = Samba Server %v
+        netbios name = bccvl
+        security = user
+        map to guest = bad user
+        dns proxy = no
+        # share vagrant home
+        [bccvlvagrant]
+        path = /home/vagrant
+        browseable = yes
+        writeable = yes
+        guest ok = no
+        read only = no
+        valid users = vagrant
+        force user = root
+        force group = root
+        hide dot files = no
+        hosts allow = 192.168.99.0/255.255.255.0
+        EOF
 
-    yum install -y docker-engine
+        echo "$C9_PASS" | tee - | smbpasswd -a -s vagrant
+        # allow samba on home folder
+        chcon -R -t samba_share_t /home/vagrant
 
-    yum clean all
+        systemctl enable smb.service
+        systemctl enable nmb.service
+        systemctl restart smb.service
+        systemctl restart nmb.service
 
-    systemctl enable docker.service
+        # install docker
+        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
-    systemctl start docker.service
+        yum install -y docker-ce
 
-    # allow ec2-user access to docker
+        systemctl enable docker.service
+        # stop in case it is already running
+        systemctl stop docker.service
+        # restart
+        systemctl start docker.service
 
-    usermod -a -G docker vagrant
+        # allow vagrant access to docker
+        usermod -a -G docker vagrant
 
-    # install docker-compose
+        # install docker-compose
+        curl -L "https://github.com/docker/compose/releases/download/1.18.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 
-    curl -L "https://github.com/docker/compose/releases/download/1.11.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
 
-    chmod +x /usr/local/bin/docker-compose
+        # TODO: I could probably move the bccvldev setup out of here, and just setup
+        #       cloup9. put config values into /home/ec2-user/.local/c9/env?
+        #       and certs as well /home/ec2-user/.local/c9/c9.pem (dev env and cloud9 will have different certs)
+        #       let's encrypt could be nice here?
+        # setup bccvl hub
+        #   login to bccvl hub if we have user and pass
+        if [ -n "$BCCVL_HUB_USER" -a -n "$BCCVL_HUB_PASS" ] ; then
+            docker login -u "$BCCVL_HUB_USER" -p "$BCCVL_HUB_PASS" hub.bccvl.org.au
+            sudo -i -u vagrant -- docker login -u "$BCCVL_HUB_USER" -p "$BCCVL_HUB_PASS" hub.bccvl.org.au
+        fi
 
-    # setup bccvl hub
-    docker login -u bccvlro -p bccvlro hub.bccvl.org.au
-    sudo -i -u vagrant -- docker login -u bccvlro -p bccvlro hub.bccvl.org.au
+        # setup bccvldev env
+        sudo -i -u vagrant -- git clone https://github.com/BCCVL/bccvldev
 
-    # install cloud9 ide and start it up
+        echo "C9_WORKSPACE=/home/vagrant/bccvldev" > /home/vagrant/bccvldev/.env
+        echo "C9_USER=admin" >> /home/vagrant/bccvldev/.env
+        echo "C9_PASS=$C9_PASS" >> /home/vagrant/bccvldev/.env
+        echo "BCCVL_HOSTNAME=192.168.99.100" >> /home/vagrant/bccvldev/.env
 
-    sudo -i -u vagrant -- git clone https://github.com/BCCVL/bccvldev
+        echo "COMPOSE_FILE=docker-compose.yml" >> /home/vagrant/bccvldev/.env
+        echo "COMPOSE_PROJECT_NAME=bccvldev" >> /home/vagrant/bccvldev/.env
 
-    echo "C9_WORKSPACE=/home/vagrant/bccvldev" > /home/vagrant/bccvldev/.env
-    echo "C9_USER=admin" >> /home/vagrant/bccvldev/.env
-    echo "C9_PASS=admin" >> /home/vagrant/bccvldev/.env
-    echo "BCCVL_HOSTNAME=192.168.99.100" >> /home/vagrant/bccvldev/.env
+        chown vagrant:vagrant /home/vagrant/bccvldev/.env
+        chmod 600 /home/vagrant/bccvldev/.env
 
-    echo "COMPOSE_FILE=docker-compose.yml:cloud9.yml" >> /home/vagrant/bccvldev/.env
-    echo "COMPOSE_PROJECT_NAME=bccvldev" >> /home/vagrant/bccvldev/.env
+        sudo -i -u vagrant -- bash -c "cd bccvldev; ./bin/gen_config.sh"
 
-    chown vagrant:vagrant /home/vagrant/bccvldev/.env
-    chmod 600 /home/vagrant/bccvldev/.env
+        # install c9 ide into /home/vagrant/c9sdk
+        curl --silent --location https://rpm.nodesource.com/setup_9.x | bash -
+        yum -y install nodejs gcc gcc-c++ glibc-static tmux
+        sudo -i -u vagrant -- mkdir /home/vagrant/c9sdk
+        sudo -i -u vagrant -- git clone https://github.com/c9/core.git c9sdk
+        sudo -i -u vagrant -- ./c9sdk/scripts/install-sdk.sh
 
-    sudo -i -u vagrant -- bash -c "cd bccvldev; ./bin/gen_config.sh"
+        # write c9 systemd unit
+        cat << 'EOF' > /etc/systemd/system/c9.service
+        [Unit]
+        Description=Cloud9 IDE
+        Requires=network.target
 
-    # TODO: maybe a systemd unit file would be best here?
-    # echo '#!/bin/sh' > /var/lib/cloud/scripts/per-boot/cloud9.sh
-    # echo 'sudo -i -u ec2-user -- bash -c "cd bccvldev; /usr/local/bin/docker-compose up -d nginxcloud9 cloud9"' >> /var/lib/cloud/scripts/per-boot/cloud9.sh
-    # chmod +x /var/lib/cloud/scripts/per-boot/cloud9.sh
+        [Service]
+        Type=simple
+        User=vagrant
+        EnvironmentFile=/home/vagrant/bccvldev/.env
+        ExecStart=/usr/bin/node /home/vagrant/c9sdk/server.js \
+            --listen 0.0.0.0 \
+            --port 8443 \
+            --auth "admin:${C9_PASS}" \
+            -w "/home/vagrant/bccvldev" \
+            --secure /home/vagrant/bccvldev/etc/nginx.pem
 
-    # reboot to activate new kernel
-    reboot
+        Restart=on-failure
 
-  SHELL
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+        systemctl daemon-reload
+        systemctl enable c9
+        systemctl start c9
+
+        echo "BCCVL DEV ENV admin password: $C9_PASS"
+        echo "Open ide at https://192.168.99.100:8443"
+
+      SHELL
+    end
 end
