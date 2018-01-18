@@ -172,7 +172,8 @@ resources:
                 --port 8443 \
                 --auth "${C9_USER}:${C9_PASS}" \
                 -w "${C9_WORKSPACE}" \
-                --secure /home/ec2-user/bccvldev/etc/nginx.pem
+                --secure /home/ec2-user/bccvldev/etc/nginx.pem \
+                --collab
 
             Restart=on-failure
 

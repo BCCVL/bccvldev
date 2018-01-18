@@ -203,7 +203,8 @@ Vagrant.configure("2") do |config|
             --port 8443 \
             --auth "admin:${C9_PASS}" \
             -w "/home/vagrant/bccvldev" \
-            --secure /home/vagrant/bccvldev/etc/nginx.pem
+            --secure /home/vagrant/bccvldev/etc/nginx.pem \
+            --collab
 
         Restart=on-failure
 
