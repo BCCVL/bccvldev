@@ -33,6 +33,10 @@ server {
 
     # access_log /var/log/nginx/yoursite.com.access.log;
     # error_log /var/log/nginx/yoursite.com.error.log;
+    
+    client_max_body_size 0;
+    proxy_read_timeout 300;
+    proxy_send_timeout 300;
 
     location /_visualiser/ {
         proxy_set_header Host $host;
