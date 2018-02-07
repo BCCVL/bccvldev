@@ -184,6 +184,7 @@ Usage:
 TODOs
 =====
 
+    - set DIAZO_ALWAYS_CACHE_RULES=true to avoid recompiling rules on every request (in debug/foreground mode)
     - document: all helper scripts
     - document: start/stop of services, how to run interactively for debugging, etc...
     - document: how to run interactive debugger (esp. for celery backend jobs)
