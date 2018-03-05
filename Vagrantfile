@@ -81,7 +81,7 @@ Vagrant.configure("2") do |config|
 
         # disable restrictive selinux (causes ssh login issues)
         sed -i'' -e 's/SELINUX=.*/SELINUX=permissive/' /etc/sysconfig/selinux
-        sed -i'' -e 's/SELINUX=.*/SELINUX=permissive/' /etc/selinux/configy
+        sed -i'' -e 's/SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
     SHELL
   end
   config.vm.provision :reload
