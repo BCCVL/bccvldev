@@ -41,7 +41,7 @@ Use Heat:
 
 4. open browser
 
-    .. code-bolkc:: bash
+    .. code-block:: bash
 
         # OS-X
         open "https://${SERVER_NAME}.nectar.bccvl.org.au:8443"
@@ -85,11 +85,17 @@ Use with whatever IDE you prefer.
 
         git clone https://github.com/BCCVL/bccvldev
 
-2. bootstrop dev env
+2. bootstrap dev env
 
     .. code-block:: bash
 
         ./bin/devup.sh
+    
+    If the database of the project is not populated after this process is complete, you may wish to run the following:
+
+    .. code-block:: bash
+
+        ./bin/manage.sh
 
 3. destroy dev env
 
@@ -154,6 +160,11 @@ The source code can be accessed via a samba share on 192.168.99.100
     .. code-block:: bash
 
         vagrant destroy
+
+Notes:
+======
+
+- If you encounter issues with resolving and installing packages during installation, you may need to change ``allow-hosts`` in ``bccvl.cfg`` to add hosts where packages are being served.
 
 Usage:
 ======

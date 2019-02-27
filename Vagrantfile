@@ -112,6 +112,8 @@ Vagrant.configure("2") do |config|
         security = user
         map to guest = bad user
         dns proxy = no
+        ntlm auth = yes
+        # log level = 3
         # share vagrant home
         [bccvlvagrant]
         path = /home/vagrant
