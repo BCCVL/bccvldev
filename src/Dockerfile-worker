@@ -1,4 +1,4 @@
-FROM hub.bccvl.org.au/bccvl/bccvlworker:latest
+FROM hub.bccvl.org.au/bccvl/bccvlworker:1.18.1.dev8_g2498c67-41
 
 COPY org.bccvl.movelib/ ${WORKER_HOME}/org.bccvl.movelib/
 COPY org.bccvl.tasks/ ${WORKER_HOME}/org.bccvl.tasks/
